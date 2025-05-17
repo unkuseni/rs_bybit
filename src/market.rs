@@ -488,17 +488,17 @@ impl MarketData {
         };
         parameters.insert("category".into(), category_value.into());
         parameters.insert("symbol".into(), req.symbol.into());
-        if let Some(start_str) = req.start_time.as_ref().map(|s| s.as_ref()) {
-            let start_millis = date_to_milliseconds(start_str);
+
+        if let Some(start_time) = req.start_time {
             parameters
                 .entry("startTime".to_owned())
-                .or_insert_with(|| start_millis.to_string());
+                .or_insert_with(|| start_time.to_string());
         }
-        if let Some(end_str) = req.end_time.as_ref().map(|s| s.as_ref()) {
-            let end_millis = date_to_milliseconds(end_str);
+
+        if let Some(end_time) = req.end_time {
             parameters
                 .entry("endTime".to_owned())
-                .or_insert_with(|| end_millis.to_string());
+                .or_insert_with(|| end_time.to_string());
         }
 
         if let Some(l) = req.limit {

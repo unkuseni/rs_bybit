@@ -22,7 +22,6 @@ pub struct AccountManager {
 }
 
 impl AccountManager {
-    
     /// Fetches the wallet balance for a specific account and optional coin.
     ///
     /// # Arguments
@@ -66,7 +65,6 @@ impl AccountManager {
         Ok(response)
     }
 
-    
     /// Upgrades the current account to UTA.
     ///
     /// This function sends a POST request to the Bybit API to upgrade the current account to UTA
@@ -95,7 +93,6 @@ impl AccountManager {
         Ok(response)
     }
 
-
     /// Retrieves the borrow history for the current account.
     ///
     /// This function sends a signed GET request to the Bybit API to retrieve the borrow history for
@@ -120,19 +117,17 @@ impl AccountManager {
         }
 
         // If the start time is specified, convert it to milliseconds and insert it into the parameters.
-        if let Some(end_str) = req.start_time.as_ref().map(|s| s.as_ref()) {
-            let end_millis = date_to_milliseconds(end_str);
+        if let Some(start_time) = req.start_time {
             parameters
                 .entry("startTime".to_owned())
-                .or_insert_with(|| end_millis.into());
+                .or_insert_with(|| start_time.into());
         }
 
         // If the end time is specified, convert it to milliseconds and insert it into the parameters.
-        if let Some(end_str) = req.end_time.as_ref().map(|s| s.as_ref()) {
-            let end_millis = date_to_milliseconds(end_str);
+        if let Some(end_time) = req.end_time {
             parameters
                 .entry("endTime".to_owned())
-                .or_insert_with(|| end_millis.into());
+                .or_insert_with(|| end_time.into());
         }
 
         // If the limit is specified, insert it into the parameters.
@@ -202,7 +197,10 @@ impl AccountManager {
         // Insert the coin parameter.
         parameters.insert("coin".into(), coin.into());
         // Insert the collateral switch parameter based on the switch value.
-        parameters.insert("collateralSwitch".into(), if switch { "ON".into() } else { "OFF".into() });
+        parameters.insert(
+            "collateralSwitch".into(),
+            if switch { "ON".into() } else { "OFF".into() },
+        );
         // Build the request using the parameters.
         let request = build_json_request(&parameters);
         // Send the signed request to the Bybit API and await the response.
@@ -296,7 +294,6 @@ impl AccountManager {
         // Return the response.
         Ok(response)
     }
-
 
     /// Retrieves the fee rate for a given market category and symbol.
     ///
@@ -416,19 +413,17 @@ impl AccountManager {
         }
 
         // Add the start time to the request parameters if it is specified.
-        if let Some(start_str) = req.start_time.as_ref().map(|s| s.as_ref()) {
-            let start_millis = date_to_milliseconds(start_str);
+        if let Some(start_time) = req.start_time {
             parameters
                 .entry("startTime".to_owned())
-                .or_insert_with(|| start_millis.into());
+                .or_insert_with(|| start_time.into());
         }
 
         // Add the end time to the request parameters if it is specified.
-        if let Some(end_str) = req.end_time.as_ref().map(|s| s.as_ref()) {
-            let end_millis = date_to_milliseconds(end_str);
+        if let Some(end_time) = req.end_time {
             parameters
                 .entry("endTime".to_owned())
-                .or_insert_with(|| end_millis.into());
+                .or_insert_with(|| end_time.into());
         }
 
         // Add the limit to the request parameters if it is specified.

@@ -280,11 +280,9 @@ impl Trader {
         req.order_status
             .map(|order_status| parameters.insert("orderStatus".into(), order_status.into()));
         req.start_time
-            .and_then(|start_time| Some(date_to_milliseconds(start_time.as_ref())))
-            .map(|start_millis| parameters.insert("startTime".into(), start_millis.to_string()));
+            .map(|start_time| parameters.insert("startTime".into(), start_time.to_string()));
         req.end_time
-            .and_then(|end_time| Some(date_to_milliseconds(end_time.as_ref())))
-            .map(|end_millis| parameters.insert("endTime".into(), end_millis.to_string()));
+            .map(|end_time| parameters.insert("endTime".into(), end_time.to_string()));
         req.limit
             .map(|limit| parameters.insert("limit".into(), limit.to_string()));
 
@@ -337,13 +335,11 @@ impl Trader {
 
         // Add the start time to the request parameters if it is specified
         req.start_time
-            .and_then(|start_time| Some(date_to_milliseconds(start_time.as_ref())))
-            .map(|start_millis| parameters.insert("startTime".into(), start_millis.to_string()));
+            .map(|start_time| parameters.insert("startTime".into(), start_time.to_string()));
 
         // Add the end time to the request parameters if it is specified
         req.end_time
-            .and_then(|end_time| Some(date_to_milliseconds(end_time.as_ref())))
-            .map(|end_millis| parameters.insert("endTime".into(), end_millis.to_string()));
+            .map(|end_time| parameters.insert("endTime".into(), end_time.to_string()));
 
         // Add the limit to the request parameters if it is specified
         req.limit

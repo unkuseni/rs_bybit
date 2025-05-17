@@ -7,11 +7,10 @@ use crate::client::Client;
 use crate::errors::BybitError;
 use crate::model::{
     AddMarginRequest, AddMarginResponse, AddReduceMarginRequest, AddReduceMarginResponse,
-    ChangeMarginRequest, ChangeMarginResponse, ClosedPnlRequest,
-    ClosedPnlResponse, InfoResponse, LeverageRequest, LeverageResponse,
-    MarginModeRequest, MarginModeResponse, MoveHistoryRequest, MoveHistoryResponse,
-    MovePositionRequest, MovePositionResponse, PositionRequest, SetRiskLimit, SetRiskLimitResponse, TradingStopRequest,
-    TradingStopResponse,
+    ChangeMarginRequest, ChangeMarginResponse, ClosedPnlRequest, ClosedPnlResponse, InfoResponse,
+    LeverageRequest, LeverageResponse, MarginModeRequest, MarginModeResponse, MoveHistoryRequest,
+    MoveHistoryResponse, MovePositionRequest, MovePositionResponse, PositionRequest, SetRiskLimit,
+    SetRiskLimitResponse, TradingStopRequest, TradingStopResponse,
 };
 use crate::util::{build_json_request, build_request, date_to_milliseconds};
 
@@ -366,17 +365,15 @@ impl PositionManager {
             parameters.insert("symbol".into(), v.into());
         }
 
-        if let Some(start_str) = req.start_time.as_ref().map(|s| s.as_ref()) {
-            let start_millis = date_to_milliseconds(start_str);
+        if let Some(start_time) = req.start_time {
             parameters
-                .entry("end".to_owned())
-                .or_insert_with(|| start_millis.to_string().into());
+                .entry("startTime".to_owned())
+                .or_insert_with(|| start_time.to_string().into());
         }
-        if let Some(end_str) = req.end_time.as_ref().map(|s| s.as_ref()) {
-            let end_millis = date_to_milliseconds(end_str);
+        if let Some(end_time) = req.end_time {
             parameters
-                .entry("end".to_owned())
-                .or_insert_with(|| end_millis.to_string().into());
+                .entry("endTime".to_owned())
+                .or_insert_with(|| end_time.to_string().into());
         }
         if let Some(v) = req.limit {
             parameters.insert("limit".into(), v.into());
@@ -452,19 +449,17 @@ impl PositionManager {
         }
 
         // If the start time is specified, convert it to milliseconds and insert it into the parameters.
-        if let Some(start_str) = req.start_time.as_ref().map(|s| s.as_ref()) {
-            let start_millis = date_to_milliseconds(start_str);
+        if let Some(start_time) = req.start_time {
             parameters
-                .entry("end".to_owned())
-                .or_insert_with(|| start_millis.to_string().into());
+                .entry("startTime".to_owned())
+                .or_insert_with(|| start_time.to_string().into());
         }
 
         // If the end time is specified, convert it to milliseconds and insert it into the parameters.
-        if let Some(end_str) = req.end_time.as_ref().map(|s| s.as_ref()) {
-            let end_millis = date_to_milliseconds(end_str);
+        if let Some(end_time) = req.end_time {
             parameters
-                .entry("end".to_owned())
-                .or_insert_with(|| end_millis.to_string().into());
+                .entry("endTime".to_owned())
+                .or_insert_with(|| end_time.to_string().into());
         }
 
         // If the status is specified, add it to the parameters.

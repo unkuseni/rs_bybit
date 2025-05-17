@@ -645,8 +645,8 @@ pub struct SpotTicker {
 pub struct FundingHistoryRequest<'a> {
     pub category: Category,
     pub symbol: Cow<'a, str>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub limit: Option<u64>,
 }
 impl<'a> FundingHistoryRequest<'a> {
@@ -656,15 +656,15 @@ impl<'a> FundingHistoryRequest<'a> {
     pub fn new(
         category: Category,
         symbol: &'a str,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         limit: Option<u64>,
     ) -> FundingHistoryRequest<'a> {
         FundingHistoryRequest {
             category,
             symbol: Cow::Borrowed(symbol),
-            start_time: start_time.map(|s| Cow::Borrowed(s)),
-            end_time: end_time.map(|s| Cow::Borrowed(s)),
+            start_time,
+            end_time,
             limit,
         }
     }
@@ -1635,8 +1635,8 @@ pub struct OrderHistoryRequest<'a> {
     pub order_link_id: Option<Cow<'a, str>>,
     pub order_filter: Option<Cow<'a, str>>,
     pub order_status: Option<Cow<'a, str>>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub limit: Option<u64>,
 }
 
@@ -1665,8 +1665,8 @@ impl<'a> OrderHistoryRequest<'a> {
         order_link_id: Option<&'a str>,
         order_filter: Option<&'a str>,
         order_status: Option<&'a str>,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         limit: Option<u64>,
     ) -> Self {
         Self {
@@ -1678,8 +1678,8 @@ impl<'a> OrderHistoryRequest<'a> {
             order_link_id: order_link_id.map(Cow::Borrowed),
             order_filter: order_filter.map(Cow::Borrowed),
             order_status: order_status.map(Cow::Borrowed),
-            start_time: start_time.map(Cow::Borrowed),
-            end_time: end_time.map(Cow::Borrowed),
+            start_time,
+            end_time,
             limit,
         }
     }
@@ -2061,8 +2061,8 @@ pub struct TradeHistoryRequest<'a> {
     pub order_id: Option<Cow<'a, str>>,
     pub order_link_id: Option<Cow<'a, str>>,
     pub base_coin: Option<Cow<'a, str>>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub exec_type: Option<Cow<'a, str>>,
     pub limit: Option<u64>,
 }
@@ -2087,8 +2087,8 @@ impl<'a> TradeHistoryRequest<'a> {
         order_id: Option<&'a str>,
         order_link_id: Option<&'a str>,
         base_coin: Option<&'a str>,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         exec_type: Option<&'a str>,
         limit: Option<u64>,
     ) -> TradeHistoryRequest<'a> {
@@ -2098,8 +2098,8 @@ impl<'a> TradeHistoryRequest<'a> {
             order_id: order_id.map(|s| Cow::Borrowed(s)),
             order_link_id: order_link_id.map(|s| Cow::Borrowed(s)),
             base_coin: base_coin.map(|s| Cow::Borrowed(s)),
-            start_time: start_time.map(|s| Cow::Borrowed(s)),
-            end_time: end_time.map(|s| Cow::Borrowed(s)),
+            start_time,
+            end_time,
             exec_type: exec_type.map(|s| Cow::Borrowed(s)),
             limit,
         }
@@ -2875,8 +2875,8 @@ pub struct AddReduceMarginResult {
 pub struct ClosedPnlRequest<'a> {
     pub category: Category,
     pub symbol: Option<Cow<'a, str>>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub limit: Option<u64>,
 }
 
@@ -2884,15 +2884,15 @@ impl<'a> ClosedPnlRequest<'a> {
     pub fn new(
         category: Category,
         symbol: Option<&'a str>,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         limit: Option<u64>,
     ) -> Self {
         Self {
             category,
             symbol: symbol.map(|s| Cow::Borrowed(s)),
-            start_time: start_time.map(|s| Cow::Borrowed(s)),
-            end_time: end_time.map(|s| Cow::Borrowed(s)),
+            start_time,
+            end_time,
             limit,
         }
     }
@@ -3009,8 +3009,8 @@ pub struct MovePositionResult {
 pub struct MoveHistoryRequest<'a> {
     pub category: Option<Category>,
     pub symbol: Option<Cow<'a, str>>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub status: Option<Cow<'a, str>>,
     pub block_trade_id: Option<Cow<'a, str>>,
     pub limit: Option<Cow<'a, str>>,
@@ -3020,8 +3020,8 @@ impl<'a> MoveHistoryRequest<'a> {
     pub fn new(
         category: Option<Category>,
         symbol: Option<&'a str>,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         status: Option<&'a str>,
         block_trade_id: Option<&'a str>,
         limit: Option<&'a str>,
@@ -3029,8 +3029,8 @@ impl<'a> MoveHistoryRequest<'a> {
         Self {
             category,
             symbol: symbol.map(|s| Cow::Borrowed(s)),
-            start_time: start_time.map(|s| Cow::Borrowed(s)),
-            end_time: end_time.map(|s| Cow::Borrowed(s)),
+            start_time,
+            end_time,
             status: status.map(|s| Cow::Borrowed(s)),
             block_trade_id: block_trade_id.map(|s| Cow::Borrowed(s)),
             limit: limit.map(|s| Cow::Borrowed(s)),
@@ -3147,22 +3147,22 @@ pub struct UnifiedUpdateMsg {
 #[derive(Clone, Debug, Default)]
 pub struct BorrowHistoryRequest<'a> {
     pub coin: Option<Cow<'a, str>>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub limit: Option<Cow<'a, str>>,
 }
 
 impl<'a> BorrowHistoryRequest<'a> {
     pub fn new(
         coin: Option<&'a str>,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         limit: Option<&'a str>,
     ) -> Self {
         Self {
             coin: coin.map(|s| Cow::Borrowed(s)),
-            start_time: start_time.map(|s| Cow::Borrowed(s)),
-            end_time: end_time.map(|s| Cow::Borrowed(s)),
+            start_time,
+            end_time,
             limit: limit.map(|s| Cow::Borrowed(s)),
         }
     }
@@ -3367,8 +3367,8 @@ pub struct TransactionLogRequest<'a> {
     pub currency: Option<Cow<'a, str>>,
     pub base_coin: Option<Cow<'a, str>>,
     pub log_type: Option<Cow<'a, str>>,
-    pub start_time: Option<Cow<'a, str>>,
-    pub end_time: Option<Cow<'a, str>>,
+    pub start_time: Option<u64>,
+    pub end_time: Option<u64>,
     pub limit: Option<u32>,
 }
 
@@ -3379,8 +3379,8 @@ impl<'a> TransactionLogRequest<'a> {
         currency: Option<&'a str>,
         base_coin: Option<&'a str>,
         log_type: Option<&'a str>,
-        start_time: Option<&'a str>,
-        end_time: Option<&'a str>,
+        start_time: Option<u64>,
+        end_time: Option<u64>,
         limit: Option<u32>,
     ) -> Self {
         Self {
@@ -3389,8 +3389,8 @@ impl<'a> TransactionLogRequest<'a> {
             currency: currency.map(|s| Cow::Borrowed(s)),
             base_coin: base_coin.map(|s| Cow::Borrowed(s)),
             log_type: log_type.map(|s| Cow::Borrowed(s)),
-            start_time: start_time.map(|s| Cow::Borrowed(s)),
-            end_time: end_time.map(|s| Cow::Borrowed(s)),
+            start_time,
+            end_time,
             limit,
         }
     }
