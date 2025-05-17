@@ -16,7 +16,7 @@ pub struct Empty {}
 #[serde(rename_all = "camelCase")]
 pub struct ServerTimeResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: ServerTime,
@@ -70,7 +70,7 @@ impl<'a> KlineRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct KlineResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: KlineSummary,
@@ -104,7 +104,7 @@ pub struct Kline {
 #[serde(rename_all = "camelCase")]
 pub struct MarkPriceKlineResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: MarkPriceKlineSummary,
@@ -136,7 +136,7 @@ pub struct MarkPriceKline {
 #[serde(rename_all = "camelCase")]
 pub struct IndexPriceKlineResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: IndexPriceKlineSummary,
@@ -168,7 +168,7 @@ pub struct IndexPriceKline {
 #[serde(rename_all = "camelCase")]
 pub struct PremiumIndexPriceKlineResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: PremiumIndexPriceKlineSummary,
@@ -229,7 +229,7 @@ impl<'a> InstrumentRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct FuturesInstrumentsInfoResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: FuturesInstrumentsInfo,
@@ -294,7 +294,7 @@ pub struct FuturesInstrument {
 #[serde(rename_all = "camelCase")]
 pub struct SpotInstrumentsInfoResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: SpotInstrumentsInfo,
@@ -469,7 +469,7 @@ impl<'a> OrderbookRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct OrderBookResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: OrderBook,
@@ -526,7 +526,7 @@ impl Ask {
 #[serde(rename_all = "camelCase")]
 pub struct FuturesTickersResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: FuturesTickers,
@@ -538,7 +538,7 @@ pub struct FuturesTickersResponse {
 #[serde(rename_all = "camelCase")]
 pub struct SpotTickersResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: SpotTickers,
@@ -674,7 +674,7 @@ impl<'a> FundingHistoryRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct FundingRateResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: FundingRateSummary,
@@ -730,7 +730,7 @@ impl<'a> RecentTradesRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct RecentTradesResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: RecentTrades,
@@ -799,7 +799,7 @@ impl<'a> OpenInterestRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct OpeninterestResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: OpenInterestSummary,
@@ -858,7 +858,7 @@ impl<'a> HistoricalVolatilityRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct HistoricalVolatilityResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub category: String,
@@ -880,7 +880,7 @@ pub struct HistoricalVolatility {
 #[serde(rename_all = "camelCase")]
 pub struct InsuranceResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: InsuranceSummary,
@@ -927,7 +927,7 @@ impl<'a> RiskLimitRequest<'a> {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RiskLimitResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: RiskLimitSummary,
@@ -961,7 +961,7 @@ pub struct RiskLimit {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DeliveryPriceResponse {
-    pub ret_code: i16,
+    pub ret_code: i32,
     pub ret_msg: String,
     pub result: DeliveryPriceSummary,
     pub ret_ext_info: Empty,
@@ -990,7 +990,7 @@ pub struct DeliveryPrice {
 #[serde(rename_all = "camelCase")]
 pub struct LongShortRatioResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: LongShortRatioSummary,
@@ -1431,7 +1431,7 @@ impl<'a> OrderRequest<'a> {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct AmendOrderResponse {
-    pub ret_code: i16,
+    pub ret_code: i32,
     pub ret_msg: String,
     pub result: OrderStatus,
     pub ret_ext_info: Empty,
@@ -1530,7 +1530,7 @@ pub struct CancelOrderRequest<'a> {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelOrderResponse {
-    pub ret_code: i16,
+    pub ret_code: i32,
     pub ret_msg: String,
     pub result: OrderStatus,
     pub ret_ext_info: Empty,
@@ -1596,7 +1596,7 @@ impl<'a> OpenOrdersRequest<'a> {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenOrdersResponse {
-    pub ret_code: i16,
+    pub ret_code: i32,
     pub ret_msg: String,
     pub result: OrderHistory,
     pub ret_ext_info: Empty,
@@ -1616,7 +1616,7 @@ pub struct OrderStatus {
 #[serde(rename_all = "camelCase")]
 pub struct OrderResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: OrderStatus,
@@ -1689,7 +1689,7 @@ impl<'a> OrderHistoryRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct OrderHistoryResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: OrderHistory,
@@ -1941,7 +1941,7 @@ impl<'a> CancelallRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct CancelallResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: CancelledList,
@@ -1959,7 +1959,7 @@ pub struct CancelledList {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct TradeHistoryResponse {
-    pub ret_code: i16,
+    pub ret_code: i32,
     pub ret_msg: String,
     pub result: TradeHistorySummary,
     pub ret_ext_info: Empty,
@@ -2120,7 +2120,7 @@ impl<'a> BatchPlaceRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct BatchPlaceResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: BatchedOrderList,
@@ -2177,7 +2177,7 @@ impl<'a> BatchAmendRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct BatchAmendResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: AmendedOrderList,
@@ -2222,7 +2222,7 @@ impl<'a> BatchCancelRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct BatchCancelResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: CanceledOrderList,
@@ -3045,7 +3045,7 @@ impl<'a> MoveHistoryRequest<'a> {
 #[serde(rename_all = "camelCase")]
 pub struct MoveHistoryResponse {
     #[serde(rename = "retCode")]
-    pub ret_code: i16,
+    pub ret_code: i32,
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
     pub result: MoveHistoryResult,
