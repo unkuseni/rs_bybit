@@ -35,11 +35,8 @@ pub mod prelude {
     pub use crate::util::*;
     pub use crate::ws::*;
 
-    #[cfg(test)]
-    pub(crate) use crate::open_fixture::*;
-
     pub(crate) use core::f64;
-    pub(crate) use derive_more::Display;
+    pub(crate) use derive_more::{Display, TryUnwrap};
     pub(crate) use futures::sink::SinkExt;
     pub(crate) use hex::encode as hex_encode;
     pub(crate) use hmac::{Hmac, Mac};

@@ -1,7 +1,10 @@
 use crate::prelude::*;
 
+use async_stream::stream;
 use futures::{SinkExt, StreamExt};
 use log::trace;
+use std::future::ready;
+use std::sync::Arc;
 use std::time::Instant;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
@@ -265,7 +268,7 @@ impl Stream {
         category: Category,
         sender: mpsc::UnboundedSender<Ticker>,
     ) -> Result<(), BybitError> {
-        self._ws_tickers(subs, category, sender, |ws_ticker| ws_ticker.data)
+        self._ws_tickers(subs, category, sender, |ws_ticker| Some(ws_ticker.data))
             .await
     }
 
@@ -291,11 +294,130 @@ impl Stream {
         category: Category,
         sender: mpsc::UnboundedSender<Timed<Ticker>>,
     ) -> Result<(), BybitError> {
-        self._ws_tickers(subs, category, sender, |ticker| Timed {
-            time: ticker.ts,
-            data: ticker.data,
+        self._ws_tickers(subs, category, sender, |ticker| {
+            Some(Timed {
+                time: ticker.ts,
+                data: ticker.data,
+            })
         })
         .await
+    }
+
+    /// A high abstraction level stream of timed linear snapshots, which you can
+    /// subscribe to using the receiver of the sender. Internally this method
+    /// consumes the linear ticker API but instead of returning a stream of deltas
+    /// we update the initial snapshot with all subsequent streams, and thanks
+    /// to internally using `.scan` we you get `Timed<LinearTickerDataSnapshot>`,
+    /// instead of `Timed<LinearTickerDataDelta>`.
+    ///
+    /// # Usage
+    /// ```
+    /// let ws: Arc<Stream> = Arc::new(Bybit::new(None, None));
+    /// let (tx, mut rx) = mpsc::unbounded_channel::<Timed<LinearTickerDataSnapshot>>();
+    /// tokio::spawn(async move {
+    ///     ws.ws_timed_linear_tickers(vec!["BTCUSDT".to_owned()], tx)
+    ///         .await
+    ///         .unwrap();
+    /// });
+    /// while let Some(ticker_snapshot) = rx.recv().await {
+    ///     println!("{:#?}", ticker_snapshot);
+    /// }
+    /// ```
+    pub async fn ws_timed_linear_tickers(
+        self: Arc<Self>,
+        subs: Vec<String>,
+        sender: mpsc::UnboundedSender<Timed<LinearTickerDataSnapshot>>,
+    ) -> Result<(), BybitError> {
+        let (tx, mut rx) = mpsc::unbounded_channel::<Timed<LinearTickerData>>();
+
+        // Spawn the WebSocket task
+        tokio::spawn({
+            let self_arc = Arc::clone(&self);
+            let subs = subs.clone();
+            async move {
+                self_arc
+                    ._ws_tickers(
+                        subs.iter().map(|s| s.as_str()).collect(),
+                        Category::Linear,
+                        tx,
+                        |ticker| -> Option<Timed<LinearTickerData>> {
+                            match &ticker.data {
+                                Ticker::Linear(linear) => Some(Timed {
+                                    time: ticker.ts,
+                                    data: linear.clone(),
+                                }),
+                                Ticker::Spot(_) => None,
+                            }
+                        },
+                    )
+                    .await
+            }
+        });
+
+        // Get the first snapshot
+        let initial: Timed<LinearTickerDataSnapshot> = match rx.recv().await {
+            Some(ticker) => match ticker.data {
+                LinearTickerData::Snapshot(snapshot) => Timed {
+                    time: ticker.time,
+                    data: snapshot,
+                },
+                LinearTickerData::Delta(_) => {
+                    return Err(BybitError::Base(
+                        "First message was not a snapshot".to_owned(),
+                    ))
+                }
+            },
+            None => {
+                return Err(BybitError::Base(
+                    "Stream ended before receiving snapshot".to_owned(),
+                ))
+            }
+        };
+
+        // Send the initial snapshot
+        if sender.send(initial.clone()).is_err() {
+            return Err(BybitError::Base(
+                "Failed to send initial snapshot".to_owned(),
+            ));
+        }
+
+        // Create a stream for deltas
+        let delta_stream = stream! {
+            while let Some(ticker) = rx.recv().await {
+                match ticker.data {
+                    LinearTickerData::Snapshot(_) => {
+                        // Ignore unexpected snapshots
+                        continue;
+                    }
+                    LinearTickerData::Delta(delta) => yield Timed {
+                        time: ticker.time,
+                        data: delta,
+                    },
+                }
+            }
+        };
+
+        // Pin the stream for scanning
+        let delta_stream = Box::pin(delta_stream);
+
+        // Use scan to update the snapshot with deltas
+        let result = delta_stream
+            .scan(initial, |acc, next| {
+                let mut acc_ticker = acc.data.clone();
+                acc_ticker.update(next.data);
+                let new = Timed {
+                    data: acc_ticker,
+                    time: next.time,
+                };
+                *acc = new.clone();
+                ready(Some(new))
+            })
+            .for_each(|item| async {
+                let _ = sender.send(item); // Ignore send errors to continue processing
+            })
+            .await;
+
+        Ok(result)
     }
 
     async fn _ws_tickers<T, F>(
@@ -303,11 +425,11 @@ impl Stream {
         subs: Vec<&str>,
         category: Category,
         sender: mpsc::UnboundedSender<T>,
-        map: F,
+        filter_map: F,
     ) -> Result<(), BybitError>
     where
         T: 'static + Sync + Send,
-        F: 'static + Sync + Send + Fn(WsTicker) -> T,
+        F: 'static + Sync + Send + Fn(WsTicker) -> Option<T>,
     {
         let arr: Vec<String> = subs
             .into_iter()
@@ -317,12 +439,13 @@ impl Stream {
 
         let handler = move |event| {
             if let WebsocketEvents::TickerEvent(ticker) = event {
-                let mapped = map(ticker);
-                sender
-                    .send(mapped)
-                    .map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                if let Some(mapped) = filter_map(ticker) {
+                    sender
+                        .send(mapped)
+                        .map_err(|e| BybitError::ChannelSendError {
+                            underlying: e.to_string(),
+                        })?;
+                }
             }
             Ok(())
         };

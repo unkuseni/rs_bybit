@@ -1,13 +1,9 @@
 use crate::prelude::*;
 
-/// Structure for linear perpetual futures ticker data.
-///
-/// Contains ticker metrics specific to linear perpetual futures, such as funding rates and open interest. Bots use this for real-time market analysis and risk management in USDT-margined contracts.
-
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Clone, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-pub struct LinearTickerData {
+pub struct LinearTickerDataDelta {
     /// The trading pair symbol (e.g., "BTCUSDT").
     ///
     /// The ONLY required field for the ticker data. Bots use this to identify the market they are trading in.
@@ -18,7 +14,7 @@ pub struct LinearTickerData {
     /// The tick direction of the last price change.
     ///
     /// Indicates whether the last price change was an uptick or downtick (e.g., "PlusTick"). Bots use this to analyze short-term price momentum.
-    pub tick_direction: Option<String>,
+    pub tick_direction: Option<TickDirection>,
 
     /// The 24-hour price change percentage.
     ///
@@ -150,9 +146,9 @@ pub struct LinearTickerData {
     pub open_interest: Option<f64>,
 }
 
-impl std::fmt::Debug for LinearTickerData {
+impl std::fmt::Debug for LinearTickerDataDelta {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut debug_struct = fmt.debug_struct("LinearTickerData");
+        let mut debug_struct = fmt.debug_struct("LinearTickerDataDelta");
 
         debug_struct.field("symbol", &self.symbol);
 
@@ -224,25 +220,5 @@ impl std::fmt::Debug for LinearTickerData {
         }
 
         debug_struct.finish()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use itertools::Itertools;
-
-    use crate::fixture;
-
-    use super::*;
-
-    #[test]
-    fn deserialize() {
-        let json = fixture!("ws_linear_ticker");
-        let values = serde_json::from_str::<Vec<WsTicker>>(json)
-            .unwrap()
-            .into_iter()
-            .map(|t| t.data.try_unwrap_linear().unwrap())
-            .collect_vec();
-        assert_eq!(values.len(), 102);
     }
 }
