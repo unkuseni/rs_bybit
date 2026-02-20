@@ -38,4 +38,37 @@ mod tests {
             Err(err) => println!("{:#?}", err),
         }
     }
+
+    /// Test case that checks the functionality of the `get_system_status`
+    /// method of the `Bybit::General` struct.
+    ///
+    /// This test case creates a new instance of `Bybit::General`, calls
+    /// `get_system_status` asynchronously with optional filters, and prints
+    /// the result or error.
+    #[test]
+    async fn test_system_status() {
+        // Create a new instance of `Bybit::General`.
+        let general: General = Bybit::new(None, None);
+
+        // Call `get_system_status` asynchronously without filters
+        println!("Testing get_system_status without filters:");
+        match general.get_system_status(None, None).await {
+            // If the call is successful, print the data.
+            Ok(data) => println!("{:#?}", data),
+            // If the call fails, print the error.
+            Err(err) => println!("{:#?}", err),
+        }
+
+        // Call `get_system_status` asynchronously with state filter
+        println!("\nTesting get_system_status with state filter:");
+        match general
+            .get_system_status(None, Some("completed".to_string()))
+            .await
+        {
+            // If the call is successful, print the data.
+            Ok(data) => println!("{:#?}", data),
+            // If the call fails, print the error.
+            Err(err) => println!("{:#?}", err),
+        }
+    }
 }

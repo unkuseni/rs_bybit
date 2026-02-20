@@ -8,6 +8,10 @@ use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn build_request<T: ToString>(parameters: &BTreeMap<String, T>) -> String {
+    if parameters.is_empty() {
+        return String::new();
+    }
+
     let mut request = String::with_capacity(
         parameters
             .iter()

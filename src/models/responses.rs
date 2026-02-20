@@ -88,6 +88,10 @@ pub type DeliveryPriceResponse = BybitApiResponse<DeliveryPriceSummary>;
 /// critical for sentiment analysis in perpetual futures trading.
 pub type LongShortRatioResponse = BybitApiResponse<LongShortRatioSummary>;
 
+/// Represents the response from Bybit's system status API endpoint.
+/// This endpoint returns information about platform maintenance or service incidents.
+pub type SystemStatusResponse = BybitApiResponse<SystemStatusResult>;
+
 /// Represents the response from Bybit when amending an order.
 ///
 /// This struct captures the result of an order amendment request, including success

@@ -51,6 +51,7 @@ pub enum Market {
     RiskLimit,
     DeliveryPrice,
     LongShortRatio,
+    SystemStatus,
 }
 
 pub enum Trade {
@@ -166,6 +167,7 @@ impl AsRef<str> for API {
                 Market::RiskLimit => "/v5/market/risk-limit",
                 Market::DeliveryPrice => "/v5/market/delivery-price",
                 Market::LongShortRatio => "/v5/market/account-ratio",
+                Market::SystemStatus => "/v5/system/status",
             },
             API::Trade(route) => match route {
                 Trade::Place => "/v5/order/create",

@@ -38,4 +38,43 @@ impl General {
         // Return the ServerTime struct
         Ok(response)
     }
+
+    /// Retrieves the system status from the Bybit API.
+    ///
+    /// This endpoint returns information about platform maintenance or service incidents.
+    ///
+    /// # Parameters
+    ///
+    /// * `id` - Optional unique identifier for filtering system status records
+    /// * `state` - Optional system state for filtering (e.g., "completed", "in_progress", "scheduled")
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing a `SystemStatusResponse` if successful,
+    /// or a `BybitError` if an error occurs.
+    pub async fn get_system_status(
+        &self,
+        id: Option<String>,
+        state: Option<String>,
+    ) -> Result<SystemStatusResponse, BybitError> {
+        // Build query parameters
+        let mut params = BTreeMap::new();
+        if let Some(id_value) = id {
+            params.insert("id".to_string(), id_value);
+        }
+        if let Some(state_value) = state {
+            params.insert("state".to_string(), state_value);
+        }
+
+        // Build request string from parameters
+        let request = build_request(&params);
+
+        // Call the get method on the client field of self
+        let response: SystemStatusResponse = self
+            .client
+            .get(API::Market(Market::SystemStatus), Some(request))
+            .await?;
+
+        Ok(response)
+    }
 }
