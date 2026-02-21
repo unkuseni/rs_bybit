@@ -14,7 +14,7 @@ mod tests {
         let request = KlineRequest::new(
             Some(Category::Linear),
             "ETHUSDT",
-            "60",
+            Interval::H1,
             Some("010124"),
             Some("050224"),
             None,
@@ -31,7 +31,7 @@ mod tests {
         let request = KlineRequest::new(
             Some(Category::Linear),
             "ETHUSDT",
-            "60",
+            Interval::H1,
             Some("010124"),
             Some("050224"),
             None,
@@ -48,7 +48,7 @@ mod tests {
         let request = KlineRequest::new(
             Some(Category::Linear),
             "ETHUSDT",
-            "60",
+            Interval::H1,
             Some("010124"),
             Some("050224"),
             None,
@@ -65,7 +65,7 @@ mod tests {
         let request = KlineRequest::new(
             Some(Category::Linear),
             "ETHUSDT",
-            "60",
+            Interval::H1,
             Some("010124"),
             Some("050224"),
             None,
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     async fn test_market() {
         let market: MarketData = Bybit::new(None, None);
-        let five_minutes = Duration::from_secs(5 * 60);
+        let five_minutes = Duration::from_secs(1 * 60);
         let request = OrderbookRequest::new("ETHUSDT", Category::Linear, Some(1));
         let start = Instant::now();
         while Instant::now() - start < five_minutes {
