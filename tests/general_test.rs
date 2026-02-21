@@ -32,8 +32,9 @@ mod tests {
         let general: General = Bybit::new(None, None);
         // Call `ping` asynchronously and match the result.
         match general.ping().await {
-            // If the call is successful, print the data.
-            Ok(data) => println!("{:#?}", data),
+            // If the call is successful, print the connection status.
+            Ok(true) => println!("Connected to Bybit API"),
+            Ok(false) => println!("Bybit API responded with an error"),
             // If the call fails, print the error.
             Err(err) => println!("{:#?}", err),
         }
