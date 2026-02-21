@@ -92,7 +92,7 @@ impl Stream {
                 Category::Linear => WebsocketAPI::PublicLinear,
                 Category::Inverse => WebsocketAPI::PublicInverse,
                 Category::Spot => WebsocketAPI::PublicSpot,
-                _ => unimplemented!("Option has not been implemented"),
+                Category::Option => WebsocketAPI::PublicOption,
             }
         };
         let request = Self::build_subscription(req);
@@ -204,6 +204,66 @@ impl Stream {
         .await
     }
 
+    /// Subscribes to RPI (Real-time Price Improvement) orderbook stream.
+    ///
+    /// RPI orderbooks show both regular orders and RPI orders, which can provide price improvement for takers.
+    /// Push frequency: 100ms for Spot, Perpetual & Futures (level 50 data).
+    /// Topic format: `orderbook.rpi.{symbol}`
+    ///
+    /// # Arguments
+    ///
+    /// * `subs` - Vector of symbol strings to subscribe to (e.g., `vec!["BTCUSDT", "ETHUSDT"]`)
+    /// * `category` - Product category (Linear, Inverse, or Spot)
+    /// * `sender` - Channel sender for RPI orderbook updates
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if subscription succeeds, otherwise returns a `BybitError`.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rs_bybit::prelude::*;
+    /// use tokio::sync::mpsc;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), BybitError> {
+    /// let client = Client::new("api_key", "api_secret", None, None)?;
+    /// let stream = Stream { client };
+    /// let (tx, mut rx) = mpsc::unbounded_channel();
+    ///
+    /// stream.ws_rpi_orderbook(vec!["BTCUSDT"], Category::Linear, tx).await?;
+    ///
+    /// while let Some(update) = rx.recv().await {
+    ///     println!("RPI Orderbook update: {:?}", update);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn ws_rpi_orderbook(
+        &self,
+        subs: Vec<&str>,
+        category: Category,
+        sender: mpsc::UnboundedSender<RPIOrderbookUpdate>,
+    ) -> Result<(), BybitError> {
+        let arr: Vec<String> = subs
+            .into_iter()
+            .map(|sym| format!("orderbook.rpi.{}", sym.to_uppercase()))
+            .collect();
+        let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
+        self.ws_subscribe(request, category, move |event| {
+            if let WebsocketEvents::RPIOrderBookEvent(rpi_order_book) = event {
+                sender
+                    .send(rpi_order_book)
+                    .map_err(|e| BybitError::ChannelSendError {
+                        underlying: e.to_string(),
+                    })?;
+            }
+            Ok(())
+        })
+        .await
+    }
+
     /// This function subscribes to the specified trades and handles the trade events.
     /// # Arguments
     ///
@@ -267,8 +327,10 @@ impl Stream {
         category: Category,
         sender: mpsc::UnboundedSender<Ticker>,
     ) -> Result<(), BybitError> {
-        self._ws_tickers(subs, category, sender, |ws_ticker| Some(ws_ticker.data))
-            .await
+        self._ws_tickers_internal(subs, category, sender, |ws_ticker: WsTicker| {
+            Some(ws_ticker.data)
+        })
+        .await
     }
 
     /// Subscribes to ticker events with timestamp for the specified symbols and category.
@@ -293,7 +355,7 @@ impl Stream {
         category: Category,
         sender: mpsc::UnboundedSender<Timed<Ticker>>,
     ) -> Result<(), BybitError> {
-        self._ws_tickers(subs, category, sender, |ticker| {
+        self._ws_tickers_internal(subs, category, sender, |ticker: WsTicker| {
             Some(Timed {
                 time: ticker.ts,
                 data: ticker.data,
@@ -345,16 +407,18 @@ impl Stream {
             let subs = subs.clone();
             async move {
                 self_arc
-                    ._ws_tickers(
+                    ._ws_tickers_internal(
                         subs.iter().map(|s| s.as_str()).collect(),
                         Category::Linear,
                         tx,
-                        |ticker| match &ticker.data {
+                        |ticker: WsTicker| match &ticker.data {
                             Ticker::Linear(linear) => Some(Timed {
                                 time: ticker.ts,
                                 data: linear.clone(),
                             }),
                             Ticker::Spot(_) => None,
+                            Ticker::Options(_) => None,
+                            Ticker::Futures(_) => None,
                         },
                     )
                     .await
@@ -403,7 +467,7 @@ impl Stream {
         Ok(())
     }
 
-    async fn _ws_tickers<T, F>(
+    async fn _ws_tickers_internal<T, F>(
         &self,
         subs: Vec<&str>,
         category: Category,
@@ -443,7 +507,7 @@ impl Stream {
     ) -> Result<(), BybitError> {
         let arr: Vec<String> = subs
             .into_iter()
-            .map(|sub| format!("liquidation.{}", sub.to_uppercase()))
+            .map(|sub| format!("allLiquidation.{}", sub.to_uppercase()))
             .collect();
         let request = Subscription::new("subscribe", arr.iter().map(String::as_str).collect());
 
@@ -612,6 +676,69 @@ impl Stream {
         .await
     }
 
+    /// Subscribes to system status updates via WebSocket.
+    ///
+    /// System status updates provide real-time information about platform maintenance
+    /// or service incidents. This is useful for monitoring exchange health and
+    /// planning trading activities around maintenance windows.
+    ///
+    /// # Arguments
+    ///
+    /// * `sender` - Channel sender for system status updates
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if subscription succeeds, otherwise returns a `BybitError`.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rs_bybit::prelude::*;
+    /// use tokio::sync::mpsc;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<(), BybitError> {
+    /// let client = Client::new("api_key", "api_secret", None, None)?;
+    /// let stream = Stream { client };
+    /// let (tx, mut rx) = mpsc::unbounded_channel();
+    ///
+    /// stream.ws_system_status(tx).await?;
+    ///
+    /// while let Some(update) = rx.recv().await {
+    ///     println!("System status update: {:?}", update);
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn ws_system_status(
+        &self,
+        sender: mpsc::UnboundedSender<SystemStatusUpdate>,
+    ) -> Result<(), BybitError> {
+        let request = Subscription::new("subscribe", vec!["system.status"]);
+        let request_str = Self::build_subscription(request);
+
+        // System status uses the misc/status endpoint
+        let endpoint = WebsocketAPI::PublicMiscStatus;
+        let response = self
+            .client
+            .wss_connect(endpoint, Some(request_str), false, None)
+            .await?;
+
+        let handler = move |event| {
+            if let WebsocketEvents::SystemStatusEvent(status_update) = event {
+                sender
+                    .send(status_update)
+                    .map_err(|e| BybitError::ChannelSendError {
+                        underlying: e.to_string(),
+                    })?;
+            }
+            Ok(())
+        };
+
+        Self::event_loop(response, handler, None).await?;
+        Ok(())
+    }
+
     pub async fn ws_trade_stream<'a, F>(
         &self,
         req: mpsc::UnboundedReceiver<RequestType<'a>>,
@@ -664,7 +791,7 @@ impl Stream {
                 }
             }
 
-            if interval.elapsed() > Duration::from_secs(300) {
+            if interval.elapsed() > Duration::from_secs(30) {
                 let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
                 if order_sender.is_none() {
                     parameters.insert("req_id".into(), generate_random_uid(8).into());

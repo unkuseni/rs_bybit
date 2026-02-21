@@ -11,7 +11,7 @@ use crate::prelude::*;
 /// while a Sell order in a falling market aims to profit from price declines.
 /// Incorrectly setting the side can lead to unintended positions, so bots must
 /// validate this field against their strategy.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub enum Side {
     /// Represents a buy order, initiating a long position or closing a short position.
     #[default]

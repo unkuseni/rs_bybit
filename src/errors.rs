@@ -39,6 +39,11 @@ pub enum BybitError {
     #[error("Failed to emit value on channel, underlying: {underlying}")]
     ChannelSendError { underlying: String },
 
+    /// ValidationError variant that holds a validation error message.
+    /// This variant is used when request parameters fail validation before being sent to the API.
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+
     /// KlineValueMissingError variant that holds the index of the missing value, and the name of the missing value.
     /// This variant is used when a value in a kline vector is missing.
     #[error("Invalid Vec for Kline: {name} at {index} is missing")]

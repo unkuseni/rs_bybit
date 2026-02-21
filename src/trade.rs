@@ -513,14 +513,135 @@ impl Trader {
         Ok(response)
     }
 
-    pub async fn get_borrow_quota_spot(&self) {
-        // TODO: Implement this function
-        todo!("This function has not yet been implemented");
+    /// Query the available balance for Spot trading and Margin trading.
+    ///
+    /// This endpoint returns information about maximum trade quantities and amounts
+    /// available for spot trading, including both actual balances and borrowable amounts.
+    /// It helps bots determine available trading capacity before placing orders.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The borrow quota request containing symbol and side
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(BorrowQuotaResponse)` - The borrow quota information
+    /// * `Err(BybitError)` - If the request fails or API returns an error
+    ///
+    /// # Notes
+    ///
+    /// - Only supports `category=spot`
+    /// - During periods of extreme market volatility, this interface may experience
+    ///   increased latency or temporary delays in data delivery
+    pub async fn get_borrow_quota_spot<'b>(
+        &self,
+        req: BorrowQuotaRequest<'_>,
+    ) -> Result<BorrowQuotaResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        parameters.insert("category".into(), req.category.as_str().into());
+        parameters.insert("symbol".into(), req.symbol.into());
+        parameters.insert("side".into(), req.side.as_str().into());
+
+        let request = build_request(&parameters);
+        let response: BorrowQuotaResponse = self
+            .client
+            .get_signed(
+                API::Trade(Trade::SpotBorrowCheck),
+                self.recv_window,
+                Some(request),
+            )
+            .await?;
+        Ok(response)
     }
 
-    pub async fn set_dcp_options(&self) {
-        // TODO: Implement this function
-        todo!("This function has not yet been implemented");
+    /// Configure Disconnection Protection (DCP) parameters.
+    ///
+    /// DCP automatically cancels all active orders if the client remains disconnected
+    /// from Bybit's WebSocket for longer than the specified time window.
+    /// This helps prevent unintended order execution during connection issues.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The DCP configuration request containing time window and product type
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(DcpResponse)` - Confirmation that DCP was configured successfully
+    /// * `Err(BybitError)` - If the request fails or API returns an error
+    ///
+    /// # Notes
+    ///
+    /// - After the request is successfully sent, the system needs a certain time to take effect
+    /// - It is recommended to query or set again after 10 seconds
+    /// - Your private websocket connection **must** subscribe to "dcp" topic to trigger DCP successfully
+    /// - Valid time window range: 3 to 300 seconds
+    /// - Default product is "OPTIONS" if not specified
+    pub async fn set_dcp_options<'b>(
+        &self,
+        req: DcpRequest<'_>,
+    ) -> Result<DcpResponse, BybitError> {
+        // Validate the request parameters
+        if let Err(e) = req.validate() {
+            return Err(BybitError::from(e));
+        }
+
+        let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
+
+        // Add timeWindow parameter (required)
+        parameters.insert("timeWindow".into(), req.time_window.into());
+
+        // Add product parameter (optional)
+        if let Some(product) = req.product {
+            parameters.insert("product".into(), product.into());
+        }
+
+        let request = build_json_request(&parameters);
+        let response: DcpResponse = self
+            .client
+            .post_signed(
+                API::Trade(Trade::SetDisconnectCancelall),
+                self.recv_window,
+                Some(request),
+            )
+            .await?;
+        Ok(response)
+    }
+
+    /// Pre-check an order to calculate margin impact before placement.
+    ///
+    /// This endpoint calculates the changes in Initial Margin Requirement (IMR) and
+    /// Maintenance Margin Requirement (MMR) before and after placing an order.
+    /// It supports categories: `inverse`, `linear`, and `option`.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The order request to pre-check
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(PreCheckOrderResponse)` - The pre-check results with margin calculations
+    /// * `Err(BybitError)` - If the request fails or API returns an error
+    ///
+    /// # Notes
+    ///
+    /// - Only Cross Margin mode and Portfolio Margin mode are supported
+    /// - Isolated margin mode is not supported
+    /// - Conditional orders are not supported
+    /// - For `inverse` category, Cross Margin mode is not supported
+    pub async fn pre_check_order<'b>(
+        &self,
+        req: OrderRequest<'_>,
+    ) -> Result<PreCheckOrderResponse, BybitError> {
+        let action = Action::Order(req, false);
+        let parameters = Self::build_orders(action);
+
+        let request = build_json_request(&parameters);
+        let response: PreCheckOrderResponse = self
+            .client
+            .post_signed(API::Trade(Trade::PreCheck), self.recv_window, Some(request))
+            .await?;
+        Ok(response)
     }
 
     pub fn build_orders<'b>(action: Action<'_>) -> BTreeMap<String, Value> {
@@ -618,6 +739,18 @@ impl Trader {
                 }
                 if let Some(v) = req.sl_order_type {
                     parameters.insert("slOrderType".into(), v.into());
+                }
+                if let Some(v) = req.slippage_tolerance_type {
+                    parameters.insert("slippageToleranceType".into(), v.into());
+                }
+                if let Some(v) = req.slippage_tolerance {
+                    parameters.insert("slippageTolerance".into(), v.to_string().into());
+                }
+                if let Some(v) = req.bbo_side_type {
+                    parameters.insert("bboSideType".into(), v.into());
+                }
+                if let Some(v) = req.bbo_level {
+                    parameters.insert("bboLevel".into(), v.to_string().into());
                 }
             }
             Action::Amend(req, batch) => {

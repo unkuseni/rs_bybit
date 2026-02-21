@@ -76,8 +76,8 @@ impl PositionManager {
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
         parameters.insert("category".into(), req.category.as_str().into());
         parameters.insert("symbol".into(), req.symbol.into());
-        parameters.insert("buyLeverage".into(), req.leverage.to_string());
-        parameters.insert("sellLeverage".into(), req.leverage.to_string());
+        parameters.insert("buyLeverage".into(), req.buy_leverage);
+        parameters.insert("sellLeverage".into(), req.sell_leverage);
         let request = build_json_request(&parameters);
         let response: LeverageResponse = self
             .client
@@ -198,14 +198,25 @@ impl PositionManager {
         &self,
         req: TradingStopRequest<'_>,
     ) -> Result<TradingStopResponse, BybitError> {
+        // Validate request parameters
+        if let Err(e) = req.validate() {
+            return Err(BybitError::ValidationError(e));
+        }
+
         let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
         parameters.insert("category".into(), req.category.as_str().into());
         parameters.insert("symbol".into(), req.symbol.into());
+        parameters.insert("tpslMode".into(), req.tpsl_mode.into());
+        parameters.insert("positionIdx".into(), req.position_idx.into());
+
         if let Some(v) = req.take_profit {
             parameters.insert("takeProfit".into(), v.into());
         }
         if let Some(v) = req.stop_loss {
             parameters.insert("stopLoss".into(), v.into());
+        }
+        if let Some(v) = req.trailing_stop {
+            parameters.insert("trailingStop".into(), v.into());
         }
         if let Some(v) = req.tp_trigger_by {
             parameters.insert("tpTriggerBy".into(), v.into());
@@ -213,14 +224,8 @@ impl PositionManager {
         if let Some(v) = req.sl_trigger_by {
             parameters.insert("slTriggerBy".into(), v.into());
         }
-        if let Some(v) = req.tpsl_mode {
-            parameters.insert("tpslMode".into(), v.into());
-        }
-        if let Some(v) = req.tp_order_type {
-            parameters.insert("tpOrderType".into(), v.as_str().into());
-        }
-        if let Some(v) = req.sl_order_type {
-            parameters.insert("slOrderType".into(), v.as_str().into());
+        if let Some(v) = req.active_price {
+            parameters.insert("activePrice".into(), v.into());
         }
         if let Some(v) = req.tp_size {
             parameters.insert("tpSize".into(), v.into());
@@ -234,7 +239,13 @@ impl PositionManager {
         if let Some(v) = req.sl_limit_price {
             parameters.insert("slLimitPrice".into(), v.into());
         }
-        parameters.insert("positionIdx".into(), req.position_idx.into());
+        if let Some(v) = req.tp_order_type {
+            parameters.insert("tpOrderType".into(), v.as_str().into());
+        }
+        if let Some(v) = req.sl_order_type {
+            parameters.insert("slOrderType".into(), v.as_str().into());
+        }
+
         let request = build_json_request(&parameters);
         let response: TradingStopResponse = self
             .client
@@ -369,6 +380,100 @@ impl PositionManager {
             .client
             .get_signed(
                 API::Position(Position::ClosedPnl),
+                self.recv_window,
+                Some(request),
+            )
+            .await?;
+        Ok(response)
+    }
+
+    /// Get closed options positions.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The ClosedOptionsPositionsRequest containing the necessary information.
+    ///
+    /// # Returns
+    ///
+    /// A result containing the closed options positions response.
+    pub async fn get_closed_options_positions<'b>(
+        &self,
+        req: ClosedOptionsPositionsRequest<'_>,
+    ) -> Result<ClosedOptionsPositionsResult, BybitError> {
+        // Validate request parameters
+        if let Err(e) = req.validate() {
+            return Err(BybitError::ValidationError(e));
+        }
+
+        let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
+        parameters.insert("category".into(), req.category.as_str().into());
+
+        if let Some(v) = req.symbol {
+            parameters.insert("symbol".into(), v.into());
+        }
+
+        if let Some(v) = req.start_time {
+            parameters.insert("startTime".into(), v.to_string().into());
+        }
+
+        if let Some(v) = req.end_time {
+            parameters.insert("endTime".into(), v.to_string().into());
+        }
+
+        if let Some(v) = req.limit {
+            parameters.insert("limit".into(), v.to_string().into());
+        }
+
+        if let Some(v) = req.cursor {
+            parameters.insert("cursor".into(), v.into());
+        }
+
+        let request = build_request(&parameters);
+        let response: ClosedOptionsPositionsResult = self
+            .client
+            .get_signed(
+                API::Position(Position::GetClosedOptionsPositions),
+                self.recv_window,
+                Some(request),
+            )
+            .await?;
+        Ok(response)
+    }
+
+    /// Confirm new risk limit (MMR - Maintenance Margin Rate).
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The ConfirmPendingMmrRequest containing the necessary information.
+    ///
+    /// # Returns
+    ///
+    /// A result containing the confirm pending MMR response.
+    ///
+    /// # Bybit API Reference
+    /// This endpoint is only applicable when the user is marked as only reducing positions
+    /// (see the `isReduceOnly` field in the Get Position Info interface).
+    /// After the user actively adjusts the risk level, this interface is called to try to
+    /// calculate the adjusted risk level. If the call passes (retCode=0), the system will
+    /// remove the position reduceOnly mark.
+    pub async fn confirm_pending_mmr<'b>(
+        &self,
+        req: ConfirmPendingMmrRequest<'_>,
+    ) -> Result<ConfirmPendingMmrResponse, BybitError> {
+        // Validate request parameters
+        if let Err(e) = req.validate() {
+            return Err(BybitError::ValidationError(e));
+        }
+
+        let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
+        parameters.insert("category".into(), req.category.as_str().into());
+        parameters.insert("symbol".into(), req.symbol.into());
+
+        let request = build_json_request(&parameters);
+        let response: ConfirmPendingMmrResponse = self
+            .client
+            .post_signed(
+                API::Position(Position::ConfirmPendingMmr),
                 self.recv_window,
                 Some(request),
             )

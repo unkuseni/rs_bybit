@@ -273,6 +273,11 @@ pub type MovePositionResponse = BybitApiResponse<MovePositionResult>;
 /// Returned by the `/v5/position/move-history` endpoint, this struct provides historical data on position transfers between accounts. Bots use this to audit transfers and verify portfolio changes.
 pub type MoveHistoryResponse = BybitApiResponse<MoveHistoryResult>;
 
+/// Response structure for confirming pending MMR (Maintenance Margin Rate).
+///
+/// Returned by the `/v5/position/confirm-pending-mmr` endpoint, this struct confirms that the new risk limit has been accepted and the reduce-only restriction has been removed. Bots use this to verify successful risk limit adjustments and resume normal trading operations.
+pub type ConfirmPendingMmrResponse = BybitApiResponse<Empty>;
+
 /// Response structure for batch order placement.
 ///
 /// Returned by the `/v5/order/create-batch` endpoint, this struct provides the result of placing multiple orders. Bots use this to confirm successful order placements and handle any errors for individual orders.
@@ -282,3 +287,28 @@ pub type BatchPlaceResponse = BybitApiResponse<BatchedOrderList, OrderConfirmati
 ///
 /// Returned by the `/v5/order/amend-batch` endpoint, this struct provides the result of amending multiple orders. Bots use this to confirm successful amendments and handle any errors for individual orders.
 pub type BatchAmendResponse = BybitApiResponse<AmendedOrderList, OrderConfirmationList>;
+
+/// Response structure for pre-check order requests.
+///
+/// Returned by the `/v5/order/pre-check` endpoint, this struct provides margin calculation results
+/// before and after placing an order. Bots use this to validate order feasibility and manage
+/// risk by assessing the impact on initial margin requirement (IMR) and maintenance
+/// margin requirement (MMR) in perpetual futures trading.
+pub type PreCheckOrderResponse = BybitApiResponse<PreCheckResult>;
+
+/// Response structure for borrow quota check requests.
+///
+/// Returned by the `/v5/order/spot-borrow-check` endpoint, this struct provides information
+/// about maximum trade quantities and amounts available for spot trading, including both
+/// actual balances and borrowable amounts. Bots use this to determine available trading
+/// capacity and manage position sizing in spot and margin trading scenarios.
+pub type BorrowQuotaResponse = BybitApiResponse<BorrowQuotaResult>;
+
+/// Response structure for Disconnection Protection (DCP) configuration requests.
+///
+/// Returned by the `/v5/order/disconnected-cancel-all` endpoint, this struct confirms
+/// the result of setting disconnection protection parameters. DCP automatically cancels
+/// all active orders if the client remains disconnected from Bybit's WebSocket for
+/// longer than the specified time window. Bots use this to configure protection against
+/// unintended order execution during connection issues.
+pub type DcpResponse = BybitApiResponse<Empty>;

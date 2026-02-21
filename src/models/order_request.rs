@@ -264,6 +264,35 @@ pub struct OrderRequest<'a> {
     /// to `tp_order_type`, bots must weigh execution speed against price control, as
     /// Market SL orders ensure loss limitation but may incur slippage in volatile markets.
     pub sl_order_type: Option<Cow<'a, str>>,
+
+    /// Slippage tolerance type for market orders (TickSize or Percent).
+    ///
+    /// Specifies how slippage tolerance is calculated for market orders.
+    /// - `TickSize`: slippage tolerance is measured in tick size units
+    /// - `Percent`: slippage tolerance is measured as a percentage
+    /// Not supported for take profit, stop loss, or conditional orders.
+    pub slippage_tolerance_type: Option<Cow<'a, str>>,
+
+    /// Slippage tolerance value for market orders.
+    ///
+    /// The value depends on `slippage_tolerance_type`:
+    /// - For `TickSize`: range is [1, 10000], integer only
+    /// - For `Percent`: range is [0.01, 10], up to 2 decimals
+    pub slippage_tolerance: Option<f64>,
+
+    /// BBO (Best Bid/Offer) side type for linear & inverse orders.
+    ///
+    /// Determines which side of the order book to use for pricing:
+    /// - `Queue`: use order price on the same side as the order
+    /// - `Counterparty`: use order price on the opposite side
+    /// Valid for `linear` & `inverse` categories only.
+    pub bbo_side_type: Option<Cow<'a, str>>,
+
+    /// BBO (Best Bid/Offer) level for linear & inverse orders.
+    ///
+    /// Specifies which level of the order book to use (1-5).
+    /// Valid for `linear` & `inverse` categories only.
+    pub bbo_level: Option<u8>,
 }
 
 impl<'a> OrderRequest<'a> {
@@ -304,6 +333,10 @@ impl<'a> OrderRequest<'a> {
             sl_limit_price: None,
             tp_order_type: None,
             sl_order_type: None,
+            slippage_tolerance_type: None,
+            slippage_tolerance: None,
+            bbo_side_type: None,
+            bbo_level: None,
         }
     }
     /// Creates a custom `OrderRequest` with specified parameters.
@@ -343,6 +376,10 @@ impl<'a> OrderRequest<'a> {
         sl_limit_price: Option<f64>,
         tp_order_type: Option<&'a str>,
         sl_order_type: Option<&'a str>,
+        slippage_tolerance_type: Option<&'a str>,
+        slippage_tolerance: Option<f64>,
+        bbo_side_type: Option<&'a str>,
+        bbo_level: Option<u8>,
     ) -> Self {
         Self {
             category,
@@ -374,6 +411,10 @@ impl<'a> OrderRequest<'a> {
             sl_limit_price,
             tp_order_type: tp_order_type.map(Cow::Borrowed),
             sl_order_type: sl_order_type.map(Cow::Borrowed),
+            slippage_tolerance_type: slippage_tolerance_type.map(Cow::Borrowed),
+            slippage_tolerance,
+            bbo_side_type: bbo_side_type.map(Cow::Borrowed),
+            bbo_level,
         }
     }
     /// Creates a spot limit order with market-based take-profit and stop-loss.
