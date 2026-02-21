@@ -128,6 +128,9 @@ pub enum Asset {
     QueryAssetInfo,
     QueryAllowedList,
     QueryRecord,
+    QuerySubMemberRecord,
+    QueryInternalRecord,
+    QueryAddress,
     QueryInfo,
     QueryAsset,
     Withdraw,
@@ -137,6 +140,9 @@ pub enum Asset {
     OrderRecord,
     WithdrawableAmount,
     SetDepositAccount,
+    QueryWithdrawalAddress,
+    QueryWithdrawalRecord,
+    QueryVaspList,
 }
 
 pub enum SpotLeverage {
@@ -257,6 +263,12 @@ impl AsRef<str> for API {
                 Asset::CancelWithdraw => "/v5/asset/withdraw/cancel",
                 Asset::QueryInfo => "/v5/asset/coin/query-info",
                 Asset::QueryRecord => "/v5/asset/deposit/query-record",
+                Asset::QueryWithdrawalAddress => "/v5/asset/withdraw/query-address",
+                Asset::QueryWithdrawalRecord => "/v5/asset/withdraw/query-record",
+                Asset::QueryVaspList => "/v5/asset/withdraw/vasp/list",
+                Asset::QuerySubMemberRecord => "/v5/asset/deposit/query-sub-member-record",
+                Asset::QueryInternalRecord => "/v5/asset/deposit/query-internal-record",
+                Asset::QueryAddress => "/v5/asset/deposit/query-address",
                 Asset::QuerySubmemberAddress => "/v5/asset/deposit/query-sub-member-address",
                 Asset::WithdrawableAmount => "/v5/asset/withdraw/withdrawable-amount",
                 Asset::SetDepositAccount => "/v5/asset/deposit/deposit-to-account",
