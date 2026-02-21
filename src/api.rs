@@ -18,13 +18,17 @@ pub enum API {
     SpotMargin(SpotMargin),
 }
 /// Bybit Endpoints
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum WebsocketAPI {
     PublicSpot,
     PublicLinear,
     PublicInverse,
+    PublicOption,
+    PublicSpread,
+    PublicRFQ,
     Private,
     TradeStream,
+    PublicMiscStatus,
 }
 
 #[derive(Clone)]
@@ -72,6 +76,7 @@ pub enum Trade {
     BatchCancel,
     SpotBorrowCheck,
     SetDisconnectCancelall,
+    PreCheck,
 }
 
 pub enum Position {
@@ -84,6 +89,8 @@ pub enum Position {
     SetAutoaddMargin,
     AddorReduceMargin,
     ClosedPnl,
+    GetClosedOptionsPositions,
+    ConfirmPendingMmr,
     MovePosition,
     MovePositionHistory,
 }
@@ -192,6 +199,7 @@ impl AsRef<str> for API {
                 Trade::BatchCancel => "/v5/order/cancel-batch",
                 Trade::SpotBorrowCheck => "/v5/order/spot-borrow-check",
                 Trade::SetDisconnectCancelall => "/v5/order/disconnected-cancel-all",
+                Trade::PreCheck => "/v5/order/pre-check",
             },
             API::Position(route) => match route {
                 Position::Information => "/v5/position/list",
@@ -203,6 +211,8 @@ impl AsRef<str> for API {
                 Position::SetAutoaddMargin => "/v5/position/set-auto-add-margin",
                 Position::AddorReduceMargin => "/v5/position/add-margin",
                 Position::ClosedPnl => "/v5/position/closed-pnl",
+                Position::GetClosedOptionsPositions => "/v5/position/get-closed-positions",
+                Position::ConfirmPendingMmr => "/v5/position/confirm-pending-mmr",
                 Position::MovePosition => "/v5/position/move-positions",
                 Position::MovePositionHistory => "/v5/position/move-history",
             },
@@ -277,8 +287,12 @@ impl AsRef<str> for WebsocketAPI {
             WebsocketAPI::PublicSpot => "/public/spot",
             WebsocketAPI::PublicLinear => "/public/linear",
             WebsocketAPI::PublicInverse => "/public/inverse",
+            WebsocketAPI::PublicOption => "/public/option",
+            WebsocketAPI::PublicRFQ => "/public/rfq",
+            WebsocketAPI::PublicSpread => "/public/spread",
             WebsocketAPI::Private => "/private",
             WebsocketAPI::TradeStream => "/trade",
+            WebsocketAPI::PublicMiscStatus => "/public/misc/status",
         }
     }
 }
