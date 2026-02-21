@@ -639,4 +639,182 @@ mod tests {
         let _ = market.get_adl_alert(request).await;
         println!("Builder pattern test completed");
     }
+
+    #[test]
+    async fn test_fee_group_info() {
+        let market: MarketData = Bybit::new(None, None);
+
+        // Test default request (all fee groups)
+        let request = FeeGroupInfoRequest::default();
+        let fee_groups = market.get_fee_group_info(request).await;
+
+        match fee_groups {
+            Ok(data) => {
+                println!("Successfully retrieved fee group info");
+                println!("Number of fee groups: {}", data.result.list.len());
+
+                // Print basic info about each fee group
+                for (i, group) in data.result.list.iter().enumerate() {
+                    println!("\nFee Group {}:", i + 1);
+                    println!("  Name: {}", group.group_name);
+                    println!("  Weighting Factor: {}", group.weighting_factor);
+                    println!("  Number of Symbols: {}", group.symbols_numbers);
+                    println!("  Update Time: {}", group.update_time);
+
+                    // Print first few symbols if available
+                    if !group.symbols.is_empty() {
+                        let symbols_to_show = group.symbols.iter().take(3).collect::<Vec<_>>();
+                        println!(
+                            "  Symbols (first {}): {:?}",
+                            symbols_to_show.len(),
+                            symbols_to_show
+                        );
+                    }
+
+                    // Print Pro fee levels count
+                    println!("  Pro Levels: {}", group.fee_rates.pro.len());
+
+                    // Print Market Maker levels count
+                    println!(
+                        "  Market Maker Levels: {}",
+                        group.fee_rates.market_maker.len()
+                    );
+                }
+            }
+            Err(err) => {
+                println!("Fee group info test failed with error: {:?}", err);
+                // Don't fail the test - the API might not be available or might require authentication
+            }
+        }
+
+        // Test with specific group ID (if we got data from the first request)
+        let fee_groups = market
+            .get_fee_group_info(FeeGroupInfoRequest::default())
+            .await;
+        if let Ok(data) = fee_groups {
+            if !data.result.list.is_empty() {
+                // Test requesting a specific group ID
+                let group_id = "1"; // Assuming group 1 exists
+                let request = FeeGroupInfoRequest::with_group_id(group_id);
+                let specific_group = market.get_fee_group_info(request).await;
+
+                match specific_group {
+                    Ok(specific_data) => {
+                        println!(
+                            "\nSuccessfully retrieved specific fee group (ID: {})",
+                            group_id
+                        );
+                        if !specific_data.result.list.is_empty() {
+                            let group = &specific_data.result.list[0];
+                            println!("Specific group name: {}", group.group_name);
+                        }
+                    }
+                    Err(err) => {
+                        println!("Specific fee group request failed with error: {:?}", err);
+                    }
+                }
+            }
+        }
+
+        // Test custom request
+        let request = FeeGroupInfoRequest::new("contract", Some("2"));
+        let _ = market.get_fee_group_info(request).await;
+        // Don't check result - just testing that the request can be created and sent
+    }
+
+    #[test]
+    async fn test_order_price_limit() {
+        let market: MarketData = Bybit::new(None, None);
+
+        // Test linear perpetual contract
+        println!("\n1. Testing order price limit for linear perpetual (BTCUSDT)...");
+        let linear_request = OrderPriceLimitRequest::linear("BTCUSDT");
+        let linear_response = market.get_order_price_limit(linear_request).await;
+
+        match linear_response {
+            Ok(data) => {
+                println!("Success! Retrieved price limits for {}", data.result.symbol);
+                println!("  Buy Limit (highest bid): {}", data.result.buy_lmt);
+                println!("  Sell Limit (lowest ask): {}", data.result.sell_lmt);
+                println!("  Timestamp: {}", data.result.ts);
+            }
+            Err(err) => {
+                println!("Linear order price limit test failed with error: {:?}", err);
+            }
+        }
+
+        // Test inverse perpetual contract
+        println!("\n2. Testing order price limit for inverse perpetual (BTCUSD)...");
+        let inverse_request = OrderPriceLimitRequest::inverse("BTCUSD");
+        let inverse_response = market.get_order_price_limit(inverse_request).await;
+
+        match inverse_response {
+            Ok(data) => {
+                println!("Success! Retrieved price limits for {}", data.result.symbol);
+                println!("  Buy Limit (highest bid): {}", data.result.buy_lmt);
+                println!("  Sell Limit (lowest ask): {}", data.result.sell_lmt);
+                println!("  Timestamp: {}", data.result.ts);
+            }
+            Err(err) => {
+                println!(
+                    "Inverse order price limit test failed with error: {:?}",
+                    err
+                );
+            }
+        }
+
+        // Test spot trading
+        println!("\n3. Testing order price limit for spot trading (BTCUSDT)...");
+        let spot_request = OrderPriceLimitRequest::spot("BTCUSDT");
+        let spot_response = market.get_order_price_limit(spot_request).await;
+
+        match spot_response {
+            Ok(data) => {
+                println!("Success! Retrieved price limits for {}", data.result.symbol);
+                println!("  Buy Limit (highest bid): {}", data.result.buy_lmt);
+                println!("  Sell Limit (lowest ask): {}", data.result.sell_lmt);
+                println!("  Timestamp: {}", data.result.ts);
+            }
+            Err(err) => {
+                println!("Spot order price limit test failed with error: {:?}", err);
+            }
+        }
+
+        // Test default request (should default to linear)
+        println!("\n4. Testing default order price limit request...");
+        let default_request = OrderPriceLimitRequest::default();
+        let default_response = market.get_order_price_limit(default_request).await;
+
+        match default_response {
+            Ok(data) => {
+                println!("Success! Retrieved price limits for {}", data.result.symbol);
+                println!("  Buy Limit (highest bid): {}", data.result.buy_lmt);
+                println!("  Sell Limit (lowest ask): {}", data.result.sell_lmt);
+                println!("  Timestamp: {}", data.result.ts);
+            }
+            Err(err) => {
+                println!(
+                    "Default order price limit test failed with error: {:?}",
+                    err
+                );
+            }
+        }
+
+        // Test custom request with explicit category
+        println!("\n5. Testing custom order price limit request...");
+        let custom_request = OrderPriceLimitRequest::new(Some(Category::Linear), "ETHUSDT");
+        let custom_response = market.get_order_price_limit(custom_request).await;
+
+        match custom_response {
+            Ok(data) => {
+                println!("Success! Retrieved price limits for {}", data.result.symbol);
+                println!("  Buy Limit (highest bid): {}", data.result.buy_lmt);
+                println!("  Sell Limit (lowest ask): {}", data.result.sell_lmt);
+                println!("  Timestamp: {}", data.result.ts);
+            }
+            Err(err) => {
+                println!("Custom order price limit test failed with error: {:?}", err);
+            }
+        }
+    }
 }

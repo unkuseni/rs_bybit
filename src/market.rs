@@ -841,4 +841,90 @@ impl MarketData {
             .await?;
         Ok(response)
     }
+
+    /// Retrieves fee group structure and fee rates.
+    ///
+    /// This method fetches the fee group structure and fee rates for contract products.
+    /// The new grouped fee structure only applies to Pro-level and Market Maker clients
+    /// and does not apply to retail traders.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The fee group info request parameters
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(FeeGroupInfoResponse)` - Contains the fee group information
+    /// * `Err(BybitError)` - If the request fails
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use rs_bybit::prelude::*;
+    ///
+    /// let client = Client::new("api_key", "api_secret");
+    /// let market = MarketData::new(client);
+    /// let request = FeeGroupInfoRequest::default();
+    /// let response = market.get_fee_group_info(request).await?;
+    /// ```
+    pub async fn get_fee_group_info<'b>(
+        &self,
+        req: FeeGroupInfoRequest<'_>,
+    ) -> Result<FeeGroupInfoResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        parameters.insert("productType".into(), req.product_type.into());
+        if let Some(group_id) = req.group_id {
+            parameters.insert("groupId".into(), group_id.into());
+        }
+        let request = build_request(&parameters);
+        let response: FeeGroupInfoResponse = self
+            .client
+            .get(API::Market(Market::FeeGroupInfo), Some(request))
+            .await?;
+        Ok(response)
+    }
+
+    /// Retrieves order price limits for a trading symbol.
+    ///
+    /// This method fetches the highest bid price (buyLmt) and lowest ask price (sellLmt)
+    /// for a given symbol, which define the order price limits for derivative or spot trading.
+    /// These limits are important for risk management and order validation.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The order price limit request parameters
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(OrderPriceLimitResponse)` - Contains the order price limit information
+    /// * `Err(BybitError)` - If the request fails
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use rs_bybit::prelude::*;
+    ///
+    /// let client = Client::new("api_key", "api_secret");
+    /// let market = MarketData::new(client);
+    /// let request = OrderPriceLimitRequest::linear("BTCUSDT");
+    /// let response = market.get_order_price_limit(request).await?;
+    /// ```
+    pub async fn get_order_price_limit<'b>(
+        &self,
+        req: OrderPriceLimitRequest<'_>,
+    ) -> Result<OrderPriceLimitResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        if let Some(cat) = req.category {
+            parameters
+                .entry("category".to_owned())
+                .or_insert_with(|| cat.as_str().to_owned());
+        }
+        parameters.insert("symbol".into(), req.symbol.into());
+        let request = build_request(&parameters);
+        let response: OrderPriceLimitResponse = self
+            .client
+            .get(API::Market(Market::OrderPriceLimit), Some(request))
+            .await?;
+        Ok(response)
+    }
 }
