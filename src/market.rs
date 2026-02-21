@@ -29,19 +29,63 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result<Vec<KlineData>, Error>` containing the requested kline data if successful, or an error otherwise.
+    /// Retrieves historical kline (candlestick) data for a trading pair.
+    ///
+    /// Kline data represents price movements over fixed time intervals and is essential
+    /// for technical analysis in trading strategies. This endpoint supports spot,
+    /// linear (USDT-margined), and inverse (coin-margined) perpetual contracts.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - A `KlineRequest` containing the query parameters
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing `KlineResponse` if successful, or `BybitError` if an error occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use bybit::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), BybitError> {
+    ///     let market = MarketData::new(None, None);
+    ///
+    ///     // Using builder pattern
+    ///     let request = KlineRequest::builder()
+    ///         .category(Category::Linear)
+    ///         .symbol("BTCUSDT")
+    ///         .interval(Interval::H1)
+    ///         .limit(100)
+    ///         .build()
+    ///         .unwrap();
+    ///
+    ///     let response = market.get_klines(request).await?;
+    ///     println!("Retrieved {} klines", response.result.list.len());
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `BybitError` if:
+    /// - Request parameters are invalid (e.g., limit out of range)
+    /// - API returns an error response
+    /// - Network or parsing errors occur
     pub async fn get_klines<'b>(&self, req: KlineRequest<'_>) -> Result<KlineResponse, BybitError> {
+        // Validate request parameters
+        req.validate().map_err(|e| BybitError::Base(e))?;
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
-        if let Some(cat) = req.category {
-            parameters
-                .entry("category".to_owned())
-                .or_insert_with(|| cat.as_str().to_owned());
-        } else {
-            parameters
-                .entry("category".to_owned())
-                .or_insert_with(|| Category::Linear.as_str().to_owned());
-        }
+
+        // Set category (default to Linear if not specified)
+        let category = req.category.unwrap_or(Category::Linear);
+        parameters.insert("category".to_owned(), category.as_str().to_owned());
+
         parameters.insert("symbol".into(), req.symbol.into());
-        parameters.insert("interval".into(), req.interval.into());
+        parameters.insert("interval".into(), req.interval.as_str().to_owned());
+
         if let Some(start_str) = req.start.as_ref().map(|s| s.as_ref()) {
             let start_millis = date_to_milliseconds(start_str);
             parameters
@@ -59,6 +103,7 @@ impl MarketData {
                 .entry("limit".to_owned())
                 .or_insert_with(|| l.to_string());
         }
+
         let request = build_request(&parameters);
         let response: KlineResponse = self
             .client
@@ -89,27 +134,75 @@ impl MarketData {
 
     /// or an error otherwise.
 
+    /// Retrieves historical mark price kline data for perpetual contracts.
+    ///
+    /// Mark price is a reference price used to calculate funding rates and trigger
+    /// liquidations in perpetual futures contracts. This endpoint supports only
+    /// linear (USDT-margined) and inverse (coin-margined) perpetual contracts.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - A `KlineRequest` containing the query parameters
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing `MarkPriceKlineResponse` if successful, or `BybitError` if an error occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use bybit::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), BybitError> {
+    ///     let market = MarketData::new(None, None);
+    ///
+    ///     let request = KlineRequest::builder()
+    ///         .category(Category::Linear)
+    ///         .symbol("BTCUSDT")
+    ///         .interval(Interval::M15)
+    ///         .limit(50)
+    ///         .build()
+    ///         .unwrap();
+    ///
+    ///     let response = market.get_mark_price_klines(request).await?;
+    ///     println!("Retrieved {} mark price klines", response.result.list.len());
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `BybitError` if:
+    /// - Category is not Linear or Inverse
+    /// - Request parameters are invalid
+    /// - API returns an error response
+    /// - Network or parsing errors occur
     pub async fn get_mark_price_klines<'b>(
         &self,
         req: KlineRequest<'_>,
     ) -> Result<MarkPriceKlineResponse, BybitError> {
-        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
-        if let Some(category) = req.category {
-            match category {
-                Category::Linear | Category::Inverse => {
-                    parameters.insert("category".to_owned(), category.as_str().to_owned());
-                }
-                _ => {
-                    return Err(BybitError::from(
-                        "Category must be either Linear or Inverse".to_string(),
-                    ))
-                }
+        // Validate request parameters
+        req.validate().map_err(|e| BybitError::Base(e))?;
+
+        // Validate category (must be Linear or Inverse for mark price klines)
+        let category = req.category.unwrap_or(Category::Linear);
+        match category {
+            Category::Linear | Category::Inverse => {
+                // Valid category
             }
-        } else {
-            parameters.insert("category".to_owned(), Category::Linear.as_str().to_string());
+            _ => {
+                return Err(BybitError::Base(
+                    "Category must be either Linear or Inverse for mark price klines".to_string(),
+                ))
+            }
         }
+
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        parameters.insert("category".to_owned(), category.as_str().to_owned());
         parameters.insert("symbol".into(), req.symbol.into());
-        parameters.insert("interval".into(), req.interval.into());
+        parameters.insert("interval".into(), req.interval.as_str().to_owned());
+
         if let Some(start_str) = req.start.as_ref().map(|s| s.as_ref()) {
             let start_millis = date_to_milliseconds(start_str);
             parameters
@@ -128,6 +221,7 @@ impl MarketData {
                 .entry("limit".to_owned())
                 .or_insert_with(|| l.to_string());
         }
+
         let request = build_request(&parameters);
         let response: MarkPriceKlineResponse = self
             .client
@@ -154,27 +248,75 @@ impl MarketData {
     ///
     /// Returns a `Result<Vec<Kline>, Error>` with the kline data if the query is successful, or an error detailing
     /// the problem if the query fails.
+    /// Retrieves historical index price kline data for perpetual contracts.
+    ///
+    /// Index price tracks the underlying asset's spot price across multiple exchanges
+    /// and is used to anchor the mark price in perpetual futures contracts.
+    /// This endpoint supports only linear (USDT-margined) and inverse (coin-margined) perpetual contracts.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - A `KlineRequest` containing the query parameters
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing `IndexPriceKlineResponse` if successful, or `BybitError` if an error occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use bybit::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), BybitError> {
+    ///     let market = MarketData::new(None, None);
+    ///
+    ///     let request = KlineRequest::builder()
+    ///         .category(Category::Inverse)
+    ///         .symbol("BTCUSD")
+    ///         .interval(Interval::H4)
+    ///         .limit(200)
+    ///         .build()
+    ///         .unwrap();
+    ///
+    ///     let response = market.get_index_price_klines(request).await?;
+    ///     println!("Retrieved {} index price klines", response.result.list.len());
+    ///     Ok(())
+    /// }
+    /// ```
+    ///
+    /// # Errors
+    ///
+    /// Returns `BybitError` if:
+    /// - Category is not Linear or Inverse
+    /// - Request parameters are invalid
+    /// - API returns an error response
+    /// - Network or parsing errors occur
     pub async fn get_index_price_klines<'b>(
         &self,
         req: KlineRequest<'_>,
     ) -> Result<IndexPriceKlineResponse, BybitError> {
-        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
-        if let Some(category) = req.category {
-            match category {
-                Category::Linear | Category::Inverse => {
-                    parameters.insert("category".to_owned(), category.as_str().to_owned());
-                }
-                _ => {
-                    return Err(BybitError::from(
-                        "Category must be either Linear or Inverse".to_string(),
-                    ))
-                }
+        // Validate request parameters
+        req.validate().map_err(|e| BybitError::Base(e))?;
+
+        // Validate category (must be Linear or Inverse for index price klines)
+        let category = req.category.unwrap_or(Category::Linear);
+        match category {
+            Category::Linear | Category::Inverse => {
+                // Valid category
             }
-        } else {
-            parameters.insert("category".to_owned(), Category::Linear.as_str().to_string());
+            _ => {
+                return Err(BybitError::Base(
+                    "Category must be either Linear or Inverse for index price klines".to_string(),
+                ))
+            }
         }
+
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        parameters.insert("category".to_owned(), category.as_str().to_owned());
         parameters.insert("symbol".into(), req.symbol.into());
-        parameters.insert("interval".into(), req.interval.into());
+        parameters.insert("interval".into(), req.interval.as_str().to_owned());
+
         if let Some(start_str) = req.start.as_ref().map(|s| s.as_ref()) {
             let start_millis = date_to_milliseconds(start_str);
             parameters
@@ -193,6 +335,7 @@ impl MarketData {
                 .entry("limit".to_owned())
                 .or_insert_with(|| l.to_string());
         }
+
         let request = build_request(&parameters);
         let response: IndexPriceKlineResponse = self
             .client
@@ -204,33 +347,74 @@ impl MarketData {
     ///
     /// Given a `symbol` and an `interval`, this function fetches the premium index price klines. It also
     /// accepts optional parameters `start` and `end` to define a specific time range, and `limit` to
-    /// restrict the number of klines returned. If `start`, `end`, or `limit` are `None`, they will be
-    /// excluded from the query.
+    /// Retrieves historical premium index price kline data for perpetual contracts.
+    ///
+    /// Premium index price reflects the premium or discount of the perpetual futures price
+    /// relative to the spot index price. This is key for understanding funding rate dynamics.
+    /// This endpoint supports only linear (USDT-margined) perpetual contracts.
     ///
     /// # Arguments
     ///
-    /// * `symbol` - The trading pair or symbol for which the klines are to be retrieved.
-    /// * `interval` - The duration between individual klines.
-    /// * `start` - Optional start time for the kline data.
-    /// * `end` - Optional end time for the kline data.
-    /// * `limit` - Optional maximum number of klines to be returned.
+    /// * `req` - A `KlineRequest` containing the query parameters
     ///
     /// # Returns
     ///
-    /// A `Result` wrapping a `PremiumIndexPriceKlineSummary` if the query succeeds, or an `Error` if it fails.
+    /// Returns a `Result` containing `PremiumIndexPriceKlineResponse` if successful, or `BybitError` if an error occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use bybit::prelude::*;
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), BybitError> {
+    ///     let market = MarketData::new(None, None);
+    ///
+    ///     let request = KlineRequest::builder()
+    ///         .category(Category::Linear)
+    ///         .symbol("BTCUSDT")
+    ///         .interval(Interval::D1)
+    ///         .limit(30)
+    ///         .build()
+    ///         .unwrap();
+    ///
+    ///     let response = market.get_premium_index_price_klines(request).await?;
+    ///     println!("Retrieved {} premium index klines", response.result.list.len());
+    ///     Ok(())
+    /// }
+    /// ```
     ///
     /// # Errors
     ///
-    /// Returns an error if the HTTP request fails, if there is an issue parsing the response, or if an error
-    /// is returned from the server.
+    /// Returns `BybitError` if:
+    /// - Category is not Linear (premium index only supports linear contracts)
+    /// - Request parameters are invalid
+    /// - API returns an error response
+    /// - Network or parsing errors occur
     pub async fn get_premium_index_price_klines<'b>(
         &self,
         req: KlineRequest<'_>,
     ) -> Result<PremiumIndexPriceKlineResponse, BybitError> {
+        // Validate request parameters
+        req.validate().map_err(|e| BybitError::Base(e))?;
+
+        // Validate category (must be Linear for premium index klines)
+        let category = req.category.unwrap_or(Category::Linear);
+        match category {
+            Category::Linear => {
+                // Valid category
+            }
+            _ => {
+                return Err(BybitError::Base(
+                    "Category must be Linear for premium index price klines".to_string(),
+                ))
+            }
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
-        parameters.insert("category".to_owned(), Category::Linear.as_str().to_string());
+        parameters.insert("category".to_owned(), category.as_str().to_owned());
         parameters.insert("symbol".into(), req.symbol.into());
-        parameters.insert("interval".into(), req.interval.into());
+        parameters.insert("interval".into(), req.interval.as_str().to_owned());
         if let Some(start_str) = req.start.as_ref().map(|s| s.as_ref()) {
             let start_millis = date_to_milliseconds(start_str);
             parameters
@@ -248,6 +432,7 @@ impl MarketData {
                 .entry("limit".to_owned())
                 .or_insert_with(|| l.to_string());
         }
+
         let request = build_request(&parameters);
         let response: PremiumIndexPriceKlineResponse = self
             .client
@@ -278,26 +463,48 @@ impl MarketData {
         &self,
         req: InstrumentRequest<'b>,
     ) -> Result<InstrumentInfoResponse, BybitError> {
+        // Validate request parameters
+        if let Err(err) = req.validate() {
+            return Err(BybitError::from(err));
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Category is required
         let category_value = match req.category {
             Category::Linear => "linear",
             Category::Inverse => "inverse",
             Category::Spot => "spot",
-            _ => return Err(BybitError::from("Invalid category".to_string())),
+            Category::Option => "option",
         };
         parameters.insert("category".into(), category_value.into());
+
+        // Optional parameters
         if let Some(symbol) = req.symbol {
             parameters.insert("symbol".into(), symbol.into());
         }
-        if req.status.unwrap_or(false) {
-            parameters.insert("status".into(), "Trading".into());
+
+        if let Some(symbol_type) = req.symbol_type {
+            parameters.insert("symbolType".into(), symbol_type.into());
         }
+
+        if let Some(status) = req.status {
+            parameters.insert("status".into(), status.into());
+        }
+
+        // Base coin only applies to linear, inverse, and option categories
         if let Some(base_coin) = req.base_coin {
             parameters.insert("baseCoin".into(), base_coin.into());
         }
-        if let Some(l) = req.limit {
-            parameters.insert("limit".into(), l.to_string());
+
+        if let Some(limit) = req.limit {
+            parameters.insert("limit".into(), limit.to_string());
         }
+
+        if let Some(cursor) = req.cursor {
+            parameters.insert("cursor".into(), cursor.into());
+        }
+
         let request = build_request(&parameters);
         let response: InstrumentInfoResponse = self
             .client
@@ -325,16 +532,63 @@ impl MarketData {
         &self,
         req: OrderbookRequest<'_>,
     ) -> Result<OrderBookResponse, BybitError> {
+        // Validate request parameters
+        if let Err(err) = req.validate() {
+            return Err(BybitError::from(err));
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
         parameters.insert("category".into(), req.category.as_str().into());
-        parameters.insert("symbol".into(), req.symbol.into());
-        if let Some(l) = req.limit {
-            parameters.insert("limit".to_string(), l.to_string());
-        }
+        parameters.insert("symbol".into(), req.symbol.clone().into());
+
+        // Use effective limit (either specified or default for category)
+        let limit = req.effective_limit();
+        parameters.insert("limit".to_string(), limit.to_string());
+
         let request = build_request(&parameters);
         let response: OrderBookResponse = self
             .client
             .get(API::Market(Market::OrderBook), Some(request))
+            .await?;
+
+        Ok(response)
+    }
+
+    /// Asynchronously retrieves RPI (Real-time Price Improvement) order book data.
+    ///
+    /// This method fetches the RPI order book for a specified trading pair, which includes
+    /// both regular orders and RPI orders. RPI orders can provide price improvement for takers
+    /// when they cross with non-RPI orders.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The RPI order book request parameters containing symbol, optional category, and limit.
+    ///
+    /// # Returns
+    ///
+    /// A `Result<RPIOrderbookResponse, BybitError>` which is Ok if the RPI order book is successfully retrieved,
+    /// or an Err with a detailed error message otherwise.
+    pub async fn get_rpi_orderbook<'b>(
+        &self,
+        req: RPIOrderbookRequest<'_>,
+    ) -> Result<RPIOrderbookResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Symbol is required
+        parameters.insert("symbol".into(), req.symbol.into());
+
+        // Category is optional
+        if let Some(category) = req.category {
+            parameters.insert("category".into(), category.as_str().into());
+        }
+
+        // Limit is required (1-50)
+        parameters.insert("limit".to_string(), req.limit.to_string());
+
+        let request = build_request(&parameters);
+        let response: RPIOrderbookResponse = self
+            .client
+            .get(API::Market(Market::RPIOrderbook), Some(request))
             .await?;
 
         Ok(response)
@@ -349,16 +603,35 @@ impl MarketData {
     /// # Returns
     ///
     /// A Result containing a vector of Ticker objects, or an error if the retrieval fails.
-    pub async fn get_tickers(
+    pub async fn get_tickers<'b>(
         &self,
-        symbol: Option<&str>,
-        category: Category,
+        req: TickerRequest<'b>,
     ) -> Result<TickerResponse, BybitError> {
+        // Validate request parameters
+        if let Err(err) = req.validate() {
+            return Err(BybitError::from(err));
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
-        parameters.insert("category".into(), category.as_str().into());
-        if let Some(symbol) = symbol {
+
+        // Category is required
+        parameters.insert("category".into(), req.category.as_str().into());
+
+        // Optional parameters
+        if let Some(symbol) = req.symbol {
             parameters.insert("symbol".into(), symbol.into());
         }
+
+        // Base coin only applies to option category
+        if let Some(base_coin) = req.base_coin {
+            parameters.insert("baseCoin".into(), base_coin.into());
+        }
+
+        // Expiry date only applies to option category
+        if let Some(exp_date) = req.exp_date {
+            parameters.insert("expDate".into(), exp_date.into());
+        }
+
         let request = build_request(&parameters);
         let response: TickerResponse = self
             .client
@@ -671,6 +944,89 @@ impl MarketData {
         Ok(response)
     }
 
+    /// Retrieves new delivery price data for options contracts.
+    ///
+    /// This method fetches historical option delivery prices from the `/v5/market/new-delivery-price` endpoint.
+    /// This endpoint is specifically for options contracts and returns the most recent 50 records
+    /// in reverse order of "deliveryTime" by default.
+    ///
+    /// # Important Notes
+    /// - This endpoint only supports options contracts (`category` must be `option`)
+    /// - It is recommended to query this endpoint 1 minute after settlement is completed,
+    ///   because the data returned by this endpoint may be delayed by 1 minute.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The new delivery price request parameters containing category, base coin, and optional settle coin.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` type containing either a `NewDeliveryPriceSummary` upon success or an error message.
+    pub async fn get_new_delivery_price<'b>(
+        &self,
+        req: NewDeliveryPriceRequest<'_>,
+    ) -> Result<NewDeliveryPriceResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Category is required and must be "option"
+        parameters.insert("category".into(), req.category.as_str().into());
+
+        // Base coin is required
+        parameters.insert("baseCoin".into(), req.base_coin.into());
+
+        // Settle coin is optional (defaults to USDT if not specified)
+        if let Some(settle_coin) = req.settle_coin {
+            parameters.insert("settleCoin".into(), settle_coin.into());
+        }
+
+        let request = build_request(&parameters);
+        let response: NewDeliveryPriceResponse = self
+            .client
+            .get(API::Market(Market::NewDeliveryPrice), Some(request))
+            .await?;
+
+        Ok(response)
+    }
+
+    /// Retrieves ADL (Auto-Deleveraging) alert data.
+    ///
+    /// This method fetches ADL alert information and insurance pool data from the
+    /// `/v5/market/adlAlert` endpoint. ADL is a risk management mechanism that
+    /// automatically closes positions when the insurance pool balance reaches
+    /// certain thresholds to prevent systemic risk.
+    ///
+    /// # Important Notes
+    /// - Data update frequency is every 1 minute
+    /// - Covers: USDT Perpetual, USDT Delivery, USDC Perpetual, USDC Delivery, Inverse Contracts
+    /// - The `symbol` parameter is optional; if not provided, returns all symbols
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The ADL alert request parameters containing optional symbol filter.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` type containing either an `ADLAlertSummary` upon success or an error message.
+    pub async fn get_adl_alert<'b>(
+        &self,
+        req: ADLAlertRequest<'_>,
+    ) -> Result<ADLAlertResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Symbol is optional - if provided, filter by symbol
+        if let Some(symbol) = req.symbol {
+            parameters.insert("symbol".into(), symbol.into());
+        }
+
+        let request = build_request(&parameters);
+        let response: ADLAlertResponse = self
+            .client
+            .get(API::Market(Market::ADLAlert), Some(request))
+            .await?;
+
+        Ok(response)
+    }
+
     /// Retrieves the long/short ratio for a given market category, symbol, period, and limit.
     ///
     /// The long/short ratio represents the total long position volume divided by the total
@@ -715,6 +1071,92 @@ impl MarketData {
         let response: LongShortRatioResponse = self
             .client
             .get(API::Market(Market::LongShortRatio), Some(request))
+            .await?;
+        Ok(response)
+    }
+
+    /// Retrieves fee group structure and fee rates.
+    ///
+    /// This method fetches the fee group structure and fee rates for contract products.
+    /// The new grouped fee structure only applies to Pro-level and Market Maker clients
+    /// and does not apply to retail traders.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The fee group info request parameters
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(FeeGroupInfoResponse)` - Contains the fee group information
+    /// * `Err(BybitError)` - If the request fails
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use rs_bybit::prelude::*;
+    ///
+    /// let client = Client::new("api_key", "api_secret");
+    /// let market = MarketData::new(client);
+    /// let request = FeeGroupInfoRequest::default();
+    /// let response = market.get_fee_group_info(request).await?;
+    /// ```
+    pub async fn get_fee_group_info<'b>(
+        &self,
+        req: FeeGroupInfoRequest<'_>,
+    ) -> Result<FeeGroupInfoResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        parameters.insert("productType".into(), req.product_type.into());
+        if let Some(group_id) = req.group_id {
+            parameters.insert("groupId".into(), group_id.into());
+        }
+        let request = build_request(&parameters);
+        let response: FeeGroupInfoResponse = self
+            .client
+            .get(API::Market(Market::FeeGroupInfo), Some(request))
+            .await?;
+        Ok(response)
+    }
+
+    /// Retrieves order price limits for a trading symbol.
+    ///
+    /// This method fetches the highest bid price (buyLmt) and lowest ask price (sellLmt)
+    /// for a given symbol, which define the order price limits for derivative or spot trading.
+    /// These limits are important for risk management and order validation.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The order price limit request parameters
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(OrderPriceLimitResponse)` - Contains the order price limit information
+    /// * `Err(BybitError)` - If the request fails
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use rs_bybit::prelude::*;
+    ///
+    /// let client = Client::new("api_key", "api_secret");
+    /// let market = MarketData::new(client);
+    /// let request = OrderPriceLimitRequest::linear("BTCUSDT");
+    /// let response = market.get_order_price_limit(request).await?;
+    /// ```
+    pub async fn get_order_price_limit<'b>(
+        &self,
+        req: OrderPriceLimitRequest<'_>,
+    ) -> Result<OrderPriceLimitResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        if let Some(cat) = req.category {
+            parameters
+                .entry("category".to_owned())
+                .or_insert_with(|| cat.as_str().to_owned());
+        }
+        parameters.insert("symbol".into(), req.symbol.into());
+        let request = build_request(&parameters);
+        let response: OrderPriceLimitResponse = self
+            .client
+            .get(API::Market(Market::OrderPriceLimit), Some(request))
             .await?;
         Ok(response)
     }

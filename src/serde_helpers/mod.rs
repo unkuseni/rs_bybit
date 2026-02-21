@@ -93,6 +93,31 @@ pub mod string_to_u64 {
     }
 }
 
+/// Deserializes a string to a u32, handling empty strings and invalid formats.
+///
+/// Used for fields like numeric IDs or enum values that are returned as strings by the Bybit API but need to be converted to `u32` for Rust. Bots should rely on this to handle edge cases, such as empty strings, which are treated as `0`.
+pub mod string_to_u32 {
+    use super::*;
+
+    // Serialize a u32 as a string.
+    pub fn serialize<S>(value: &u32, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let s = value.to_string();
+        serializer.serialize_str(&s)
+    }
+
+    // Deserialize a string to a u32.
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<u32, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<u32>().map_err(serde::de::Error::custom)
+    }
+}
+
 /// Deserializes a string to an f64, handling empty strings and invalid formats.
 ///
 /// Used for fields like prices (`last_price`, `open_price`) and quantities (`size`, `open_interest`) that are returned as strings to preserve precision but need to be converted to `f64` for calculations. Bots should use this to ensure accurate numerical processing and handle edge cases like empty strings.

@@ -18,13 +18,17 @@ pub enum API {
     SpotMargin(SpotMargin),
 }
 /// Bybit Endpoints
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum WebsocketAPI {
     PublicSpot,
     PublicLinear,
     PublicInverse,
+    PublicOption,
+    PublicSpread,
+    PublicRFQ,
     Private,
     TradeStream,
+    PublicMiscStatus,
 }
 
 #[derive(Clone)]
@@ -42,6 +46,7 @@ pub enum Market {
     PremiumIndexPriceKline,
     InstrumentsInfo,
     OrderBook,
+    RPIOrderbook,
     Ticker,
     FundingRate,
     RecentTrades,
@@ -50,7 +55,12 @@ pub enum Market {
     Insurance,
     RiskLimit,
     DeliveryPrice,
+    NewDeliveryPrice,
     LongShortRatio,
+    SystemStatus,
+    ADLAlert,
+    FeeGroupInfo,
+    OrderPriceLimit,
 }
 
 pub enum Trade {
@@ -66,6 +76,7 @@ pub enum Trade {
     BatchCancel,
     SpotBorrowCheck,
     SetDisconnectCancelall,
+    PreCheck,
 }
 
 pub enum Position {
@@ -78,6 +89,8 @@ pub enum Position {
     SetAutoaddMargin,
     AddorReduceMargin,
     ClosedPnl,
+    GetClosedOptionsPositions,
+    ConfirmPendingMmr,
     MovePosition,
     MovePositionHistory,
 }
@@ -111,9 +124,13 @@ pub enum Asset {
     QueryTransferCoinList,
     QueryTransferSubmemberList,
     QueryAccountCoinBalance,
+    QuerySingleAccountCoinBalance,
     QueryAssetInfo,
     QueryAllowedList,
     QueryRecord,
+    QuerySubMemberRecord,
+    QueryInternalRecord,
+    QueryAddress,
     QueryInfo,
     QueryAsset,
     Withdraw,
@@ -121,6 +138,11 @@ pub enum Asset {
     Deposit,
     QuerySubmemberAddress,
     OrderRecord,
+    WithdrawableAmount,
+    SetDepositAccount,
+    QueryWithdrawalAddress,
+    QueryWithdrawalRecord,
+    QueryVaspList,
 }
 
 pub enum SpotLeverage {
@@ -158,6 +180,7 @@ impl AsRef<str> for API {
                 Market::PremiumIndexPriceKline => "/v5/market/premium-index-price-kline",
                 Market::InstrumentsInfo => "/v5/market/instruments-info",
                 Market::OrderBook => "/v5/market/orderbook",
+                Market::RPIOrderbook => "/v5/market/rpi_orderbook",
                 Market::Ticker => "/v5/market/tickers",
                 Market::RecentTrades => "/v5/market/recent-trade",
                 Market::FundingRate => "/v5/market/funding/history",
@@ -165,7 +188,12 @@ impl AsRef<str> for API {
                 Market::HistoricalVolatility => "/v5/market/historical-volatility",
                 Market::RiskLimit => "/v5/market/risk-limit",
                 Market::DeliveryPrice => "/v5/market/delivery-price",
+                Market::NewDeliveryPrice => "/v5/market/new-delivery-price",
                 Market::LongShortRatio => "/v5/market/account-ratio",
+                Market::SystemStatus => "/v5/system/status",
+                Market::ADLAlert => "/v5/market/adlAlert",
+                Market::FeeGroupInfo => "/v5/market/fee-group-info",
+                Market::OrderPriceLimit => "/v5/market/price-limit",
             },
             API::Trade(route) => match route {
                 Trade::Place => "/v5/order/create",
@@ -180,6 +208,7 @@ impl AsRef<str> for API {
                 Trade::BatchCancel => "/v5/order/cancel-batch",
                 Trade::SpotBorrowCheck => "/v5/order/spot-borrow-check",
                 Trade::SetDisconnectCancelall => "/v5/order/disconnected-cancel-all",
+                Trade::PreCheck => "/v5/order/pre-check",
             },
             API::Position(route) => match route {
                 Position::Information => "/v5/position/list",
@@ -191,6 +220,8 @@ impl AsRef<str> for API {
                 Position::SetAutoaddMargin => "/v5/position/set-auto-add-margin",
                 Position::AddorReduceMargin => "/v5/position/add-margin",
                 Position::ClosedPnl => "/v5/position/closed-pnl",
+                Position::GetClosedOptionsPositions => "/v5/position/get-closed-positions",
+                Position::ConfirmPendingMmr => "/v5/position/confirm-pending-mmr",
                 Position::MovePosition => "/v5/position/move-positions",
                 Position::MovePositionHistory => "/v5/position/move-history",
             },
@@ -216,6 +247,9 @@ impl AsRef<str> for API {
                 Asset::SettlementRecord => "/v5/asset/settlement-record",
                 Asset::QueryAssetInfo => "/v5/asset/transfer/query-asset-info",
                 Asset::QueryAccountCoinBalance => "/v5/asset/transfer/query-account-coins-balance",
+                Asset::QuerySingleAccountCoinBalance => {
+                    "/v5/asset/transfer/query-account-coin-balance"
+                }
                 Asset::QueryTransferCoinList => "/v5/asset/transfer/query-transfer-coin-list",
                 Asset::Intertransfer => "/v5/asset/transfer/inter-transfer",
                 Asset::QueryTransferList => "/v5/asset/transfer/query-inter-transfer-list",
@@ -229,7 +263,15 @@ impl AsRef<str> for API {
                 Asset::CancelWithdraw => "/v5/asset/withdraw/cancel",
                 Asset::QueryInfo => "/v5/asset/coin/query-info",
                 Asset::QueryRecord => "/v5/asset/deposit/query-record",
+                Asset::QueryWithdrawalAddress => "/v5/asset/withdraw/query-address",
+                Asset::QueryWithdrawalRecord => "/v5/asset/withdraw/query-record",
+                Asset::QueryVaspList => "/v5/asset/withdraw/vasp/list",
+                Asset::QuerySubMemberRecord => "/v5/asset/deposit/query-sub-member-record",
+                Asset::QueryInternalRecord => "/v5/asset/deposit/query-internal-record",
+                Asset::QueryAddress => "/v5/asset/deposit/query-address",
                 Asset::QuerySubmemberAddress => "/v5/asset/deposit/query-sub-member-address",
+                Asset::WithdrawableAmount => "/v5/asset/withdraw/withdrawable-amount",
+                Asset::SetDepositAccount => "/v5/asset/deposit/deposit-to-account",
                 _ => {
                     todo!("Asset route not implemented");
                 }
@@ -265,8 +307,12 @@ impl AsRef<str> for WebsocketAPI {
             WebsocketAPI::PublicSpot => "/public/spot",
             WebsocketAPI::PublicLinear => "/public/linear",
             WebsocketAPI::PublicInverse => "/public/inverse",
+            WebsocketAPI::PublicOption => "/public/option",
+            WebsocketAPI::PublicRFQ => "/public/rfq",
+            WebsocketAPI::PublicSpread => "/public/spread",
             WebsocketAPI::Private => "/private",
             WebsocketAPI::TradeStream => "/trade",
+            WebsocketAPI::PublicMiscStatus => "/public/misc/status",
         }
     }
 }

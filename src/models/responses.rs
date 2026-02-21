@@ -44,6 +44,11 @@ pub type InstrumentInfoResponse = BybitApiResponse<InstrumentInfo>;
 /// Returned by the `/v5/market/orderbook` endpoint, this struct provides the current order book for a trading pair, including bid and ask levels. Bots use this for liquidity analysis and to optimize order placement in perpetual futures.
 pub type OrderBookResponse = BybitApiResponse<OrderBook>;
 
+/// Response structure for RPI (Real-time Price Improvement) order book data requests.
+///
+/// Returned by the `/v5/market/rpi_orderbook` endpoint, this struct provides the current RPI order book for a trading pair, including bid and ask levels with RPI size information. RPI orders can provide price improvement for takers.
+pub type RPIOrderbookResponse = BybitApiResponse<RPIOrderbook>;
+
 /// Response structure for ticker data requests.
 ///
 /// Returned by the `/v5/market/tickers` endpoint, this struct provides real-time market data for a trading pair, such as current price, volume, and funding rates. For perpetual futures, this is critical for monitoring market conditions and funding costs.
@@ -83,10 +88,30 @@ pub type RiskLimitResponse = BybitApiResponse<RiskLimitSummary>;
 /// be used for reference or historical analysis by bots.
 pub type DeliveryPriceResponse = BybitApiResponse<DeliveryPriceSummary>;
 
+/// Response structure for new delivery price data requests (options only).
+///
+/// Returned by the `/v5/market/new-delivery-price` endpoint, this struct provides
+/// historical option delivery prices. This endpoint is specifically for options contracts
+/// and returns the most recent 50 records in reverse order of delivery time by default.
+pub type NewDeliveryPriceResponse = BybitApiResponse<NewDeliveryPriceSummary>;
+
+/// Response structure for ADL (Auto-Deleveraging) alert data requests.
+///
+/// Returned by the `/v5/market/adlAlert` endpoint, this struct provides
+/// ADL alert information and insurance pool data. ADL is a risk management
+/// mechanism that automatically closes positions when the insurance pool
+/// balance reaches certain thresholds to prevent systemic risk.
+/// Data update frequency is every 1 minute.
+pub type ADLAlertResponse = BybitApiResponse<ADLAlertSummary>;
+
 /// Represents the response from Bybit’s long/short ratio API endpoint.
 /// The long/short ratio shows the balance of bullish vs. bearish positions in the market,
 /// critical for sentiment analysis in perpetual futures trading.
 pub type LongShortRatioResponse = BybitApiResponse<LongShortRatioSummary>;
+
+/// Represents the response from Bybit's system status API endpoint.
+/// This endpoint returns information about platform maintenance or service incidents.
+pub type SystemStatusResponse = BybitApiResponse<SystemStatusResult>;
 
 /// Represents the response from Bybit when amending an order.
 ///
@@ -248,6 +273,11 @@ pub type MovePositionResponse = BybitApiResponse<MovePositionResult>;
 /// Returned by the `/v5/position/move-history` endpoint, this struct provides historical data on position transfers between accounts. Bots use this to audit transfers and verify portfolio changes.
 pub type MoveHistoryResponse = BybitApiResponse<MoveHistoryResult>;
 
+/// Response structure for confirming pending MMR (Maintenance Margin Rate).
+///
+/// Returned by the `/v5/position/confirm-pending-mmr` endpoint, this struct confirms that the new risk limit has been accepted and the reduce-only restriction has been removed. Bots use this to verify successful risk limit adjustments and resume normal trading operations.
+pub type ConfirmPendingMmrResponse = BybitApiResponse<Empty>;
+
 /// Response structure for batch order placement.
 ///
 /// Returned by the `/v5/order/create-batch` endpoint, this struct provides the result of placing multiple orders. Bots use this to confirm successful order placements and handle any errors for individual orders.
@@ -257,3 +287,28 @@ pub type BatchPlaceResponse = BybitApiResponse<BatchedOrderList, OrderConfirmati
 ///
 /// Returned by the `/v5/order/amend-batch` endpoint, this struct provides the result of amending multiple orders. Bots use this to confirm successful amendments and handle any errors for individual orders.
 pub type BatchAmendResponse = BybitApiResponse<AmendedOrderList, OrderConfirmationList>;
+
+/// Response structure for pre-check order requests.
+///
+/// Returned by the `/v5/order/pre-check` endpoint, this struct provides margin calculation results
+/// before and after placing an order. Bots use this to validate order feasibility and manage
+/// risk by assessing the impact on initial margin requirement (IMR) and maintenance
+/// margin requirement (MMR) in perpetual futures trading.
+pub type PreCheckOrderResponse = BybitApiResponse<PreCheckResult>;
+
+/// Response structure for borrow quota check requests.
+///
+/// Returned by the `/v5/order/spot-borrow-check` endpoint, this struct provides information
+/// about maximum trade quantities and amounts available for spot trading, including both
+/// actual balances and borrowable amounts. Bots use this to determine available trading
+/// capacity and manage position sizing in spot and margin trading scenarios.
+pub type BorrowQuotaResponse = BybitApiResponse<BorrowQuotaResult>;
+
+/// Response structure for Disconnection Protection (DCP) configuration requests.
+///
+/// Returned by the `/v5/order/disconnected-cancel-all` endpoint, this struct confirms
+/// the result of setting disconnection protection parameters. DCP automatically cancels
+/// all active orders if the client remains disconnected from Bybit's WebSocket for
+/// longer than the specified time window. Bots use this to configure protection against
+/// unintended order execution during connection issues.
+pub type DcpResponse = BybitApiResponse<Empty>;

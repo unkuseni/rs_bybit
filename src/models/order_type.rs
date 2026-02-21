@@ -10,7 +10,7 @@ use crate::prelude::*;
 /// futures, where price volatility can be high, choosing the right order type is
 /// crucial for bots. Market orders are faster but may incur higher fees (taker fees),
 /// while limit orders may qualify for lower fees (maker fees) if they add liquidity.
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub enum OrderType {
     /// A limit order, executed at a specified price or better.
     Limit,

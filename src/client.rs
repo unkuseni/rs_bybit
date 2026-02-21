@@ -1,4 +1,6 @@
 use crate::prelude::*;
+use log::trace;
+use std::time::Duration;
 
 /// The main client struct that wraps the reqwest client.
 ///
@@ -471,12 +473,36 @@ impl Client {
                     "op": "auth",
                     "args": [self.api_key, expires, signature]
                 });
+
                 if private {
                     // Send the authentication message if `private` is true
                     ws_stream
                         .send(WsMessage::Text(auth_msg.to_string()))
                         .await?;
+
+                    // Wait for authentication response with timeout
+                    let auth_response = tokio::time::timeout(
+                        Duration::from_secs(5),
+                        wait_for_auth_response(&mut ws_stream, endpoint),
+                    )
+                    .await
+                    .map_err(|_| BybitError::Base("Authentication timeout".to_string()))??;
+
+                    // Check if authentication was successful
+                    if auth_response.is_failure() {
+                        return Err(BybitError::Base(format!(
+                            "Authentication failed: {} (code: {:?})",
+                            auth_response.ret_msg(),
+                            auth_response.error_code()
+                        )));
+                    }
+
+                    trace!(
+                        "WebSocket authentication successful: {}",
+                        auth_response.conn_id()
+                    );
                 }
+
                 // Send the request body if it is not empty
                 let request = request_body.unwrap_or_default();
                 if !request.is_empty() {
@@ -486,6 +512,73 @@ impl Client {
             }
             // If the connection fails, return a BybitError
             Err(err) => Err(BybitError::Tungstenite(err)),
+        }
+    }
+}
+
+/// Waits for and parses an authentication response from a WebSocket stream.
+///
+/// This function reads messages from the WebSocket stream until it receives
+/// an authentication response, then parses it into an `AuthResponse`.
+async fn wait_for_auth_response(
+    ws_stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+    endpoint: WebsocketAPI,
+) -> Result<AuthResponse, BybitError> {
+    use futures::StreamExt;
+
+    loop {
+        match ws_stream.next().await {
+            Some(Ok(WsMessage::Text(msg))) => {
+                // Try to parse as AuthResponse
+                if let Ok(auth_response) = serde_json::from_str::<AuthResponse>(&msg) {
+                    return Ok(auth_response);
+                }
+
+                // If it's not an auth response, check if it's a subscription response
+                // (for public streams that don't require auth but send subscription confirmation)
+                let value: Value = serde_json::from_str(&msg)
+                    .map_err(|e| BybitError::Base(format!("Failed to parse message: {}", e)))?;
+
+                // Check if this is a subscription response for public streams
+                if let Some(op) = value.get("op").and_then(|v| v.as_str()) {
+                    if op == "subscribe" {
+                        // This is a subscription confirmation, not an auth response
+                        // For public streams, this is expected
+                        if endpoint == WebsocketAPI::TradeStream {
+                            // Trade stream should send auth response, not subscribe
+                            continue;
+                        }
+                        // For public non-trade streams, create a success response
+                        let conn_id = value
+                            .get("conn_id")
+                            .or_else(|| value.get("connId"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown");
+
+                        return Ok(AuthResponse::PrivateAuth(PrivateAuthData::new(
+                            true,
+                            "subscription confirmed",
+                            conn_id,
+                            None,
+                        )));
+                    }
+                }
+
+                // If we get here, it's not an auth or subscribe response
+                // Continue waiting
+            }
+            Some(Ok(_)) => {
+                // Binary or other non-text message, ignore
+                continue;
+            }
+            Some(Err(e)) => {
+                return Err(BybitError::Tungstenite(e));
+            }
+            None => {
+                return Err(BybitError::Base(
+                    "WebSocket stream closed while waiting for authentication".to_string(),
+                ));
+            }
         }
     }
 }
