@@ -44,6 +44,11 @@ pub type InstrumentInfoResponse = BybitApiResponse<InstrumentInfo>;
 /// Returned by the `/v5/market/orderbook` endpoint, this struct provides the current order book for a trading pair, including bid and ask levels. Bots use this for liquidity analysis and to optimize order placement in perpetual futures.
 pub type OrderBookResponse = BybitApiResponse<OrderBook>;
 
+/// Response structure for RPI (Real-time Price Improvement) order book data requests.
+///
+/// Returned by the `/v5/market/rpi_orderbook` endpoint, this struct provides the current RPI order book for a trading pair, including bid and ask levels with RPI size information. RPI orders can provide price improvement for takers.
+pub type RPIOrderbookResponse = BybitApiResponse<RPIOrderbook>;
+
 /// Response structure for ticker data requests.
 ///
 /// Returned by the `/v5/market/tickers` endpoint, this struct provides real-time market data for a trading pair, such as current price, volume, and funding rates. For perpetual futures, this is critical for monitoring market conditions and funding costs.
@@ -82,6 +87,22 @@ pub type RiskLimitResponse = BybitApiResponse<RiskLimitSummary>;
 /// Delivery prices apply to futures with settlement dates, but for perpetual futures, this may
 /// be used for reference or historical analysis by bots.
 pub type DeliveryPriceResponse = BybitApiResponse<DeliveryPriceSummary>;
+
+/// Response structure for new delivery price data requests (options only).
+///
+/// Returned by the `/v5/market/new-delivery-price` endpoint, this struct provides
+/// historical option delivery prices. This endpoint is specifically for options contracts
+/// and returns the most recent 50 records in reverse order of delivery time by default.
+pub type NewDeliveryPriceResponse = BybitApiResponse<NewDeliveryPriceSummary>;
+
+/// Response structure for ADL (Auto-Deleveraging) alert data requests.
+///
+/// Returned by the `/v5/market/adlAlert` endpoint, this struct provides
+/// ADL alert information and insurance pool data. ADL is a risk management
+/// mechanism that automatically closes positions when the insurance pool
+/// balance reaches certain thresholds to prevent systemic risk.
+/// Data update frequency is every 1 minute.
+pub type ADLAlertResponse = BybitApiResponse<ADLAlertSummary>;
 
 /// Represents the response from Bybit’s long/short ratio API endpoint.
 /// The long/short ratio shows the balance of bullish vs. bearish positions in the market,

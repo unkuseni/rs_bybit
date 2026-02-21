@@ -339,6 +339,46 @@ impl MarketData {
 
         Ok(response)
     }
+
+    /// Asynchronously retrieves RPI (Real-time Price Improvement) order book data.
+    ///
+    /// This method fetches the RPI order book for a specified trading pair, which includes
+    /// both regular orders and RPI orders. RPI orders can provide price improvement for takers
+    /// when they cross with non-RPI orders.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The RPI order book request parameters containing symbol, optional category, and limit.
+    ///
+    /// # Returns
+    ///
+    /// A `Result<RPIOrderbookResponse, BybitError>` which is Ok if the RPI order book is successfully retrieved,
+    /// or an Err with a detailed error message otherwise.
+    pub async fn get_rpi_orderbook<'b>(
+        &self,
+        req: RPIOrderbookRequest<'_>,
+    ) -> Result<RPIOrderbookResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Symbol is required
+        parameters.insert("symbol".into(), req.symbol.into());
+
+        // Category is optional
+        if let Some(category) = req.category {
+            parameters.insert("category".into(), category.as_str().into());
+        }
+
+        // Limit is required (1-50)
+        parameters.insert("limit".to_string(), req.limit.to_string());
+
+        let request = build_request(&parameters);
+        let response: RPIOrderbookResponse = self
+            .client
+            .get(API::Market(Market::RPIOrderbook), Some(request))
+            .await?;
+
+        Ok(response)
+    }
     /// Asynchronously retrieves tickers based on the provided symbol and category.
     ///
     /// # Arguments
@@ -668,6 +708,89 @@ impl MarketData {
             .client
             .get(API::Market(Market::DeliveryPrice), Some(request))
             .await?;
+        Ok(response)
+    }
+
+    /// Retrieves new delivery price data for options contracts.
+    ///
+    /// This method fetches historical option delivery prices from the `/v5/market/new-delivery-price` endpoint.
+    /// This endpoint is specifically for options contracts and returns the most recent 50 records
+    /// in reverse order of "deliveryTime" by default.
+    ///
+    /// # Important Notes
+    /// - This endpoint only supports options contracts (`category` must be `option`)
+    /// - It is recommended to query this endpoint 1 minute after settlement is completed,
+    ///   because the data returned by this endpoint may be delayed by 1 minute.
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The new delivery price request parameters containing category, base coin, and optional settle coin.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` type containing either a `NewDeliveryPriceSummary` upon success or an error message.
+    pub async fn get_new_delivery_price<'b>(
+        &self,
+        req: NewDeliveryPriceRequest<'_>,
+    ) -> Result<NewDeliveryPriceResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Category is required and must be "option"
+        parameters.insert("category".into(), req.category.as_str().into());
+
+        // Base coin is required
+        parameters.insert("baseCoin".into(), req.base_coin.into());
+
+        // Settle coin is optional (defaults to USDT if not specified)
+        if let Some(settle_coin) = req.settle_coin {
+            parameters.insert("settleCoin".into(), settle_coin.into());
+        }
+
+        let request = build_request(&parameters);
+        let response: NewDeliveryPriceResponse = self
+            .client
+            .get(API::Market(Market::NewDeliveryPrice), Some(request))
+            .await?;
+
+        Ok(response)
+    }
+
+    /// Retrieves ADL (Auto-Deleveraging) alert data.
+    ///
+    /// This method fetches ADL alert information and insurance pool data from the
+    /// `/v5/market/adlAlert` endpoint. ADL is a risk management mechanism that
+    /// automatically closes positions when the insurance pool balance reaches
+    /// certain thresholds to prevent systemic risk.
+    ///
+    /// # Important Notes
+    /// - Data update frequency is every 1 minute
+    /// - Covers: USDT Perpetual, USDT Delivery, USDC Perpetual, USDC Delivery, Inverse Contracts
+    /// - The `symbol` parameter is optional; if not provided, returns all symbols
+    ///
+    /// # Arguments
+    ///
+    /// * `req` - The ADL alert request parameters containing optional symbol filter.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` type containing either an `ADLAlertSummary` upon success or an error message.
+    pub async fn get_adl_alert<'b>(
+        &self,
+        req: ADLAlertRequest<'_>,
+    ) -> Result<ADLAlertResponse, BybitError> {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Symbol is optional - if provided, filter by symbol
+        if let Some(symbol) = req.symbol {
+            parameters.insert("symbol".into(), symbol.into());
+        }
+
+        let request = build_request(&parameters);
+        let response: ADLAlertResponse = self
+            .client
+            .get(API::Market(Market::ADLAlert), Some(request))
+            .await?;
+
         Ok(response)
     }
 

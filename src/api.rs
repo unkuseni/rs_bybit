@@ -42,6 +42,7 @@ pub enum Market {
     PremiumIndexPriceKline,
     InstrumentsInfo,
     OrderBook,
+    RPIOrderbook,
     Ticker,
     FundingRate,
     RecentTrades,
@@ -50,8 +51,10 @@ pub enum Market {
     Insurance,
     RiskLimit,
     DeliveryPrice,
+    NewDeliveryPrice,
     LongShortRatio,
     SystemStatus,
+    ADLAlert,
 }
 
 pub enum Trade {
@@ -159,6 +162,7 @@ impl AsRef<str> for API {
                 Market::PremiumIndexPriceKline => "/v5/market/premium-index-price-kline",
                 Market::InstrumentsInfo => "/v5/market/instruments-info",
                 Market::OrderBook => "/v5/market/orderbook",
+                Market::RPIOrderbook => "/v5/market/rpi_orderbook",
                 Market::Ticker => "/v5/market/tickers",
                 Market::RecentTrades => "/v5/market/recent-trade",
                 Market::FundingRate => "/v5/market/funding/history",
@@ -166,8 +170,10 @@ impl AsRef<str> for API {
                 Market::HistoricalVolatility => "/v5/market/historical-volatility",
                 Market::RiskLimit => "/v5/market/risk-limit",
                 Market::DeliveryPrice => "/v5/market/delivery-price",
+                Market::NewDeliveryPrice => "/v5/market/new-delivery-price",
                 Market::LongShortRatio => "/v5/market/account-ratio",
                 Market::SystemStatus => "/v5/system/status",
+                Market::ADLAlert => "/v5/market/adlAlert",
             },
             API::Trade(route) => match route {
                 Trade::Place => "/v5/order/create",

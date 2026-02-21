@@ -174,6 +174,106 @@ mod tests {
     }
 
     #[test]
+    async fn test_rpi_orderbook() {
+        let market: MarketData = Bybit::new(None, None);
+
+        // Test with required parameters only (category optional)
+        let request = RPIOrderbookRequest::new("BTCUSDT", None, 5);
+        let rpi_orderbook = market.get_rpi_orderbook(request).await;
+
+        match rpi_orderbook {
+            Ok(data) => {
+                println!("RPI Orderbook test successful!");
+                println!("Symbol: {}", data.result.symbol);
+                println!("Timestamp: {}", data.result.timestamp);
+                println!("Update ID: {}", data.result.update_id);
+                println!("Sequence: {}", data.result.sequence);
+                println!(
+                    "Matching Engine Timestamp: {}",
+                    data.result.matching_engine_timestamp
+                );
+
+                // Check bids
+                if !data.result.bids.is_empty() {
+                    let best_bid = &data.result.bids[0];
+                    println!(
+                        "Best bid: price={}, non_rpi_size={}, rpi_size={}, total={}",
+                        best_bid.price,
+                        best_bid.non_rpi_size,
+                        best_bid.rpi_size,
+                        best_bid.total_size()
+                    );
+                }
+
+                // Check asks
+                if !data.result.asks.is_empty() {
+                    let best_ask = &data.result.asks[0];
+                    println!(
+                        "Best ask: price={}, non_rpi_size={}, rpi_size={}, total={}",
+                        best_ask.price,
+                        best_ask.non_rpi_size,
+                        best_ask.rpi_size,
+                        best_ask.total_size()
+                    );
+                }
+
+                // Test utility methods
+                if let Some(spread) = data.result.spread() {
+                    println!("Spread: {}", spread);
+                }
+                if let Some(mid_price) = data.result.mid_price() {
+                    println!("Mid price: {}", mid_price);
+                }
+
+                println!("Total bid RPI size: {}", data.result.total_bid_rpi_size());
+                println!("Total ask RPI size: {}", data.result.total_ask_rpi_size());
+                println!(
+                    "Total bid non-RPI size: {}",
+                    data.result.total_bid_non_rpi_size()
+                );
+                println!(
+                    "Total ask non-RPI size: {}",
+                    data.result.total_ask_non_rpi_size()
+                );
+            }
+            Err(err) => {
+                println!("RPI Orderbook test failed with error: {:?}", err);
+                // Don't fail the test - the API might not be available or might require authentication
+            }
+        }
+
+        // Test with category specified
+        let request = RPIOrderbookRequest::new("BTCUSDT", Some(Category::Spot), 3);
+        let rpi_orderbook = market.get_rpi_orderbook(request).await;
+
+        match rpi_orderbook {
+            Ok(data) => {
+                println!("RPI Orderbook with category test successful!");
+                println!("Symbol: {}", data.result.symbol);
+            }
+            Err(err) => {
+                println!(
+                    "RPI Orderbook with category test error (might be expected): {:?}",
+                    err
+                );
+            }
+        }
+
+        // Test convenience methods
+        match RPIOrderbookRequest::spot("BTCUSDT", 10) {
+            Ok(request) => {
+                let rpi_orderbook = market.get_rpi_orderbook(request).await;
+                if let Ok(_data) = rpi_orderbook {
+                    println!("Spot RPI Orderbook test successful!");
+                }
+            }
+            Err(err) => {
+                println!("Failed to create spot request: {}", err);
+            }
+        }
+    }
+
+    #[test]
     async fn test_funding_rate() {
         let market: MarketData = Bybit::new(None, None);
         let symbol = "BTCUSDT";
@@ -250,5 +350,293 @@ mod tests {
         if let Ok(data) = longshort_ratio {
             println!("{:#?}", data.result);
         }
+    }
+
+    #[test]
+    async fn test_new_delivery_price() {
+        let market: MarketData = Bybit::new(None, None);
+
+        // Test with BTC options (defaults to USDT settlement)
+        match NewDeliveryPriceRequest::btc() {
+            Ok(request) => {
+                let new_delivery_price = market.get_new_delivery_price(request).await;
+                match new_delivery_price {
+                    Ok(data) => {
+                        println!("New Delivery Price test successful!");
+                        println!("Category: {}", data.result.category);
+                        println!("Number of records: {}", data.result.count());
+
+                        if !data.result.is_empty() {
+                            if let Some(most_recent) = data.result.most_recent() {
+                                println!("Most recent delivery:");
+                                println!("  Price: {}", most_recent.delivery_price);
+                                println!("  Time: {}", most_recent.delivery_time);
+
+                                if let Some(price_f64) = most_recent.delivery_price_as_f64() {
+                                    println!("  Price (as f64): {}", price_f64);
+                                }
+
+                                if let Some(datetime) = most_recent.delivery_datetime() {
+                                    println!("  DateTime: {}", datetime);
+                                }
+                            }
+
+                            if let Some(oldest) = data.result.oldest() {
+                                println!("Oldest delivery:");
+                                println!("  Price: {}", oldest.delivery_price);
+                                println!("  Time: {}", oldest.delivery_time);
+                            }
+
+                            // Test utility methods
+                            println!("Sorted by time (ascending):");
+                            for (i, item) in data.result.sorted_by_time_asc().enumerate().take(3) {
+                                println!(
+                                    "  {}: {} at {}",
+                                    i + 1,
+                                    item.delivery_price,
+                                    item.delivery_time
+                                );
+                            }
+
+                            println!("Sorted by time (descending):");
+                            for (i, item) in data.result.sorted_by_time_desc().enumerate().take(3) {
+                                println!(
+                                    "  {}: {} at {}",
+                                    i + 1,
+                                    item.delivery_price,
+                                    item.delivery_time
+                                );
+                            }
+
+                            // Test find methods
+                            if let Some(most_recent) = data.result.most_recent() {
+                                if let Some(found) =
+                                    data.result.find_by_timestamp(most_recent.delivery_time)
+                                {
+                                    println!("Found by timestamp: {}", found.delivery_price);
+                                }
+
+                                if let Some(closest) = data
+                                    .result
+                                    .find_closest_to_timestamp(most_recent.delivery_time)
+                                {
+                                    println!("Closest to timestamp: {}", closest.delivery_price);
+                                }
+                            }
+                        }
+                    }
+                    Err(err) => {
+                        println!("New Delivery Price test failed with error: {:?}", err);
+                        // Don't fail the test - the API might not be available or might require authentication
+                        // Options data might not be available on testnet
+                    }
+                }
+            }
+            Err(err) => {
+                println!("Failed to create request: {}", err);
+            }
+        }
+
+        // Test convenience methods
+        println!("\nTesting convenience methods:");
+
+        match NewDeliveryPriceRequest::eth() {
+            Ok(request) => {
+                let _ = market.get_new_delivery_price(request).await;
+                println!("ETH options request created successfully");
+            }
+            Err(err) => {
+                println!("ETH request error: {}", err);
+            }
+        }
+
+        match NewDeliveryPriceRequest::sol() {
+            Ok(request) => {
+                let _ = market.get_new_delivery_price(request).await;
+                println!("SOL options request created successfully");
+            }
+            Err(err) => {
+                println!("SOL request error: {}", err);
+            }
+        }
+
+        match NewDeliveryPriceRequest::usdt("BTC") {
+            Ok(request) => {
+                let _ = market.get_new_delivery_price(request).await;
+                println!("BTC/USDT options request created successfully");
+            }
+            Err(err) => {
+                println!("BTC/USDT request error: {}", err);
+            }
+        }
+
+        match NewDeliveryPriceRequest::usdc("ETH") {
+            Ok(request) => {
+                let _ = market.get_new_delivery_price(request).await;
+                println!("ETH/USDC options request created successfully");
+            }
+            Err(err) => {
+                println!("ETH/USDC request error: {}", err);
+            }
+        }
+
+        // Test builder pattern
+        match NewDeliveryPriceRequest::try_new(Category::Option, "BTC", None) {
+            Ok(request) => {
+                let request_with_settle = request.with_settle_coin("USDC");
+                let _ = market.get_new_delivery_price(request_with_settle).await;
+                println!("Builder pattern test successful");
+            }
+            Err(err) => {
+                println!("Builder pattern error: {}", err);
+            }
+        }
+    }
+
+    #[test]
+    async fn test_adl_alert() {
+        let market: MarketData = Bybit::new(None, None);
+
+        // Test with no symbol filter (returns all symbols)
+        let request = ADLAlertRequest::all_symbols();
+        let adl_alert = market.get_adl_alert(request).await;
+
+        match adl_alert {
+            Ok(data) => {
+                println!("ADL Alert test successful!");
+                println!("Updated time: {}", data.result.updated_time);
+
+                if let Some(datetime) = data.result.updated_datetime() {
+                    println!("Updated datetime: {}", datetime);
+                }
+
+                if let Some(time_since_update) = data.result.time_since_update() {
+                    println!("Time since update: {} seconds", time_since_update);
+
+                    if let Some(is_stale) = data.result.is_stale() {
+                        println!("Is stale (older than 2 minutes): {}", is_stale);
+                    }
+                }
+
+                println!("Number of ADL alert items: {}", data.result.count());
+
+                if !data.result.is_empty() {
+                    // Display first few items
+                    for (i, item) in data.result.list.iter().take(3).enumerate() {
+                        println!("Item {}:", i + 1);
+                        println!("  Symbol: {}", item.symbol);
+                        println!("  Coin: {}", item.coin);
+                        println!("  Balance: {}", item.balance);
+                        println!("  PnL Ratio: {}", item.pnl_ratio);
+                        println!("  Insurance PnL Ratio: {}", item.insurance_pnl_ratio);
+                        println!("  ADL Trigger Threshold: {}", item.adl_trigger_threshold);
+                        println!("  ADL Stop Ratio: {}", item.adl_stop_ratio);
+                        println!("  Max Balance (deprecated): {}", item.max_balance);
+
+                        // Test utility methods
+                        if let Some(balance) = item.balance_as_f64() {
+                            println!("  Balance (as f64): {}", balance);
+                        }
+
+                        let (
+                            contract_triggered,
+                            contract_stopped,
+                            equity_triggered,
+                            equity_stopped,
+                        ) = item.adl_status();
+                        println!("  Contract PnL Drawdown ADL:");
+                        println!("    Triggered: {:?}", contract_triggered);
+                        println!("    Stopped: {:?}", contract_stopped);
+                        println!("  Insurance Pool Equity ADL:");
+                        println!("    Triggered: {:?}", equity_triggered);
+                        println!("    Stopped: {:?}", equity_stopped);
+
+                        if let Some(any_triggered) = item.is_any_adl_triggered() {
+                            println!("  Any ADL triggered: {}", any_triggered);
+                        }
+
+                        if let Some(all_stopped) = item.is_all_adl_stopped() {
+                            println!("  All ADL stopped: {}", all_stopped);
+                        }
+                    }
+
+                    // Test summary utility methods
+                    let triggered_items = data.result.triggered_items();
+                    println!(
+                        "Number of items with ADL triggered: {}",
+                        triggered_items.len()
+                    );
+
+                    let stopped_items = data.result.stopped_items();
+                    println!(
+                        "Number of items with all ADL stopped: {}",
+                        stopped_items.len()
+                    );
+
+                    // Test filtering by coin
+                    let usdt_items = data.result.filter_by_coin("USDT");
+                    println!("Number of USDT items: {}", usdt_items.len());
+
+                    // Test find by symbol
+                    if let Some(first_item) = data.result.list.first() {
+                        if let Some(found_item) = data.result.find_by_symbol(&first_item.symbol) {
+                            println!(
+                                "Found item for symbol {}: balance = {}",
+                                found_item.symbol, found_item.balance
+                            );
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                println!("ADL Alert test failed with error: {:?}", err);
+                // Don't fail the test - the API might not be available or might require authentication
+            }
+        }
+
+        // Test with symbol filter
+        let request = ADLAlertRequest::btcusdt();
+        let adl_alert = market.get_adl_alert(request).await;
+
+        match adl_alert {
+            Ok(data) => {
+                println!("ADL Alert with symbol filter test successful!");
+                println!("Number of items: {}", data.result.count());
+
+                if !data.result.is_empty() {
+                    let item = &data.result.list[0];
+                    println!(
+                        "Filtered item - Symbol: {}, Balance: {}",
+                        item.symbol, item.balance
+                    );
+                }
+            }
+            Err(err) => {
+                println!(
+                    "ADL Alert with symbol filter test error (might be expected): {:?}",
+                    err
+                );
+            }
+        }
+
+        // Test convenience methods
+        println!("\nTesting convenience methods:");
+
+        for symbol_request in [
+            ADLAlertRequest::ethusdt(),
+            ADLAlertRequest::solusdt(),
+            ADLAlertRequest::xrpusdt(),
+            ADLAlertRequest::adausdt(),
+        ] {
+            let _ = market.get_adl_alert(symbol_request).await;
+            // Don't check result - just testing that requests can be created
+        }
+
+        // Test builder pattern
+        let request = ADLAlertRequest::default()
+            .with_symbol("BTCUSDT")
+            .without_symbol();
+        let _ = market.get_adl_alert(request).await;
+        println!("Builder pattern test completed");
     }
 }
