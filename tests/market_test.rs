@@ -79,7 +79,15 @@ mod tests {
     #[test]
     async fn test_futures_instrument() {
         let market: MarketData = Bybit::new(None, None);
-        let request = InstrumentRequest::new(Category::Linear, Some("ETHUSDT"), None, None, None);
+        let request = InstrumentRequest::new(
+            Category::Linear,
+            Some("ETHUSDT"),
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
         let instrument = market.get_instrument_info(request).await;
         if let Ok(data) = instrument {
             match data.result {
@@ -92,7 +100,15 @@ mod tests {
     #[test]
     async fn test_spot_instrument() {
         let market: MarketData = Bybit::new(None, None);
-        let request = InstrumentRequest::new(Category::Spot, Some("ETHUSDT"), None, None, None);
+        let request = InstrumentRequest::new(
+            Category::Spot,
+            Some("ETHUSDT"),
+            None,
+            None,
+            None,
+            None,
+            None,
+        );
         let instrument = market.get_instrument_info(request).await;
         if let Ok(data) = instrument {
             match data.result {
@@ -140,8 +156,8 @@ mod tests {
     #[test]
     async fn test_futures_ticker() {
         let market: MarketData = Bybit::new(None, None);
-        let symbol = "ETHUSDT";
-        let futures_ticker = market.get_tickers(Some(symbol), Category::Linear).await;
+        let request = TickerRequest::linear(Some("ETHUSDT"));
+        let futures_ticker = market.get_tickers(request).await;
         if let Ok(data) = futures_ticker {
             match &data.result.list[0] {
                 TickerData::Futures(futures) => println!("{:#?}", futures),
@@ -153,8 +169,8 @@ mod tests {
     #[test]
     async fn test_spot_ticker() {
         let market: MarketData = Bybit::new(None, None);
-        let symbol = "ETHUSDT";
-        let spot_ticker = market.get_tickers(Some(symbol), Category::Spot).await;
+        let request = TickerRequest::spot(Some("ETHUSDT"));
+        let spot_ticker = market.get_tickers(request).await;
         if let Ok(data) = spot_ticker {
             match &data.result.list[0].clone() {
                 TickerData::Spot(spot) => println!("{:#?}", spot),

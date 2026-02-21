@@ -463,26 +463,48 @@ impl MarketData {
         &self,
         req: InstrumentRequest<'b>,
     ) -> Result<InstrumentInfoResponse, BybitError> {
+        // Validate request parameters
+        if let Err(err) = req.validate() {
+            return Err(BybitError::from(err));
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+
+        // Category is required
         let category_value = match req.category {
             Category::Linear => "linear",
             Category::Inverse => "inverse",
             Category::Spot => "spot",
-            _ => return Err(BybitError::from("Invalid category".to_string())),
+            Category::Option => "option",
         };
         parameters.insert("category".into(), category_value.into());
+
+        // Optional parameters
         if let Some(symbol) = req.symbol {
             parameters.insert("symbol".into(), symbol.into());
         }
-        if req.status.unwrap_or(false) {
-            parameters.insert("status".into(), "Trading".into());
+
+        if let Some(symbol_type) = req.symbol_type {
+            parameters.insert("symbolType".into(), symbol_type.into());
         }
+
+        if let Some(status) = req.status {
+            parameters.insert("status".into(), status.into());
+        }
+
+        // Base coin only applies to linear, inverse, and option categories
         if let Some(base_coin) = req.base_coin {
             parameters.insert("baseCoin".into(), base_coin.into());
         }
-        if let Some(l) = req.limit {
-            parameters.insert("limit".into(), l.to_string());
+
+        if let Some(limit) = req.limit {
+            parameters.insert("limit".into(), limit.to_string());
         }
+
+        if let Some(cursor) = req.cursor {
+            parameters.insert("cursor".into(), cursor.into());
+        }
+
         let request = build_request(&parameters);
         let response: InstrumentInfoResponse = self
             .client
@@ -510,12 +532,19 @@ impl MarketData {
         &self,
         req: OrderbookRequest<'_>,
     ) -> Result<OrderBookResponse, BybitError> {
+        // Validate request parameters
+        if let Err(err) = req.validate() {
+            return Err(BybitError::from(err));
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
         parameters.insert("category".into(), req.category.as_str().into());
-        parameters.insert("symbol".into(), req.symbol.into());
-        if let Some(l) = req.limit {
-            parameters.insert("limit".to_string(), l.to_string());
-        }
+        parameters.insert("symbol".into(), req.symbol.clone().into());
+
+        // Use effective limit (either specified or default for category)
+        let limit = req.effective_limit();
+        parameters.insert("limit".to_string(), limit.to_string());
+
         let request = build_request(&parameters);
         let response: OrderBookResponse = self
             .client
@@ -574,16 +603,35 @@ impl MarketData {
     /// # Returns
     ///
     /// A Result containing a vector of Ticker objects, or an error if the retrieval fails.
-    pub async fn get_tickers(
+    pub async fn get_tickers<'b>(
         &self,
-        symbol: Option<&str>,
-        category: Category,
+        req: TickerRequest<'b>,
     ) -> Result<TickerResponse, BybitError> {
+        // Validate request parameters
+        if let Err(err) = req.validate() {
+            return Err(BybitError::from(err));
+        }
+
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
-        parameters.insert("category".into(), category.as_str().into());
-        if let Some(symbol) = symbol {
+
+        // Category is required
+        parameters.insert("category".into(), req.category.as_str().into());
+
+        // Optional parameters
+        if let Some(symbol) = req.symbol {
             parameters.insert("symbol".into(), symbol.into());
         }
+
+        // Base coin only applies to option category
+        if let Some(base_coin) = req.base_coin {
+            parameters.insert("baseCoin".into(), base_coin.into());
+        }
+
+        // Expiry date only applies to option category
+        if let Some(exp_date) = req.exp_date {
+            parameters.insert("expDate".into(), exp_date.into());
+        }
+
         let request = build_request(&parameters);
         let response: TickerResponse = self
             .client
