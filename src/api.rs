@@ -124,6 +124,7 @@ pub enum Asset {
     QueryTransferCoinList,
     QueryTransferSubmemberList,
     QueryAccountCoinBalance,
+    QuerySingleAccountCoinBalance,
     QueryAssetInfo,
     QueryAllowedList,
     QueryRecord,
@@ -134,6 +135,8 @@ pub enum Asset {
     Deposit,
     QuerySubmemberAddress,
     OrderRecord,
+    WithdrawableAmount,
+    SetDepositAccount,
 }
 
 pub enum SpotLeverage {
@@ -238,6 +241,9 @@ impl AsRef<str> for API {
                 Asset::SettlementRecord => "/v5/asset/settlement-record",
                 Asset::QueryAssetInfo => "/v5/asset/transfer/query-asset-info",
                 Asset::QueryAccountCoinBalance => "/v5/asset/transfer/query-account-coins-balance",
+                Asset::QuerySingleAccountCoinBalance => {
+                    "/v5/asset/transfer/query-account-coin-balance"
+                }
                 Asset::QueryTransferCoinList => "/v5/asset/transfer/query-transfer-coin-list",
                 Asset::Intertransfer => "/v5/asset/transfer/inter-transfer",
                 Asset::QueryTransferList => "/v5/asset/transfer/query-inter-transfer-list",
@@ -252,6 +258,8 @@ impl AsRef<str> for API {
                 Asset::QueryInfo => "/v5/asset/coin/query-info",
                 Asset::QueryRecord => "/v5/asset/deposit/query-record",
                 Asset::QuerySubmemberAddress => "/v5/asset/deposit/query-sub-member-address",
+                Asset::WithdrawableAmount => "/v5/asset/withdraw/withdrawable-amount",
+                Asset::SetDepositAccount => "/v5/asset/deposit/deposit-to-account",
                 _ => {
                     todo!("Asset route not implemented");
                 }
