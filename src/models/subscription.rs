@@ -25,6 +25,13 @@ impl<'a> Subscription<'a> {
     ///
     /// Returns a subscription with `op` set to `"subscribe"` and an empty argument list. Suitable for testing but should be customized with valid topics for production.
     pub fn default() -> Subscription<'a> {
-        Subscription::new("subscribe", vec![])
+        Self::new("subscribe", vec![])
+    }
+
+    /// Returns a new Subscription with `op` set to `"unsubscribe"`.
+    ///
+    /// The returned subscription will have the same `args` as the original, allowing for easy unsubscription of all topics.
+    pub fn unsubscribe(&self) -> Subscription<'a> {
+        Self::new("unsubscribe", self.args.clone())
     }
 }
