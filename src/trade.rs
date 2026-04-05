@@ -870,5 +870,6 @@ pub fn build_ws_orders<'a>(orders: RequestType) -> Value {
             }
             Value::Array(order_array)
         }
+        _ => Value::Null,
     }
 }

@@ -163,6 +163,7 @@ impl Stream {
                     build_ws_orders(RequestType::CancelBatch(order)),
                 );
             }
+            _ => {}
         }
         build_json_request(&parameters)
     }
@@ -760,7 +761,7 @@ impl Stream {
     pub async fn event_loop<'a, H>(
         mut stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
         mut handler: H,
-        mut order_sender: Option<mpsc::UnboundedReceiver<RequestType<'_>>>,
+        mut request_sender: Option<mpsc::UnboundedReceiver<RequestType<'_>>>,
     ) -> Result<(), BybitError>
     where
         H: WebSocketHandler,
@@ -784,18 +785,23 @@ impl Stream {
                 }
                 _ => {}
             }
-            if let Some(sender) = order_sender.as_mut() {
+            if let Some(sender) = request_sender.as_mut() {
                 if let Some(v) = sender.recv().await {
-                    let order_req = Self::build_trade_subscription(v, Some(3000));
-                    stream.send(WsMessage::Text(order_req)).await?;
+                    match v {
+                        RequestType::Subscribe(sub) | RequestType::Unsubscribe(sub) => {
+                            let req = Self::build_subscription(sub);
+                            stream.send(WsMessage::Text(req)).await?;
+                        }
+                        _ => {
+                            let req = Self::build_trade_subscription(v, Some(3000));
+                            stream.send(WsMessage::Text(req)).await?;
+                        }
+                    }
                 }
             }
 
             if interval.elapsed() > Duration::from_secs(30) {
                 let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
-                if order_sender.is_none() {
-                    parameters.insert("req_id".into(), generate_random_uid(8).into());
-                }
                 parameters.insert("op".into(), "ping".into());
                 let request = build_json_request(&parameters);
                 let _ = stream
