@@ -78,6 +78,64 @@ impl Stream {
         Ok(())
     }
 
+    /// Connects to a private WebSocket endpoint with dynamic subscription control.
+    ///
+    /// This method allows bots to dynamically subscribe and unsubscribe to private data streams
+    /// (orders, positions, executions, wallet) after the connection is established.
+    /// Use this when you need to change private subscriptions without reconnecting.
+    ///
+    /// # Arguments
+    ///
+    /// * `cmd_receiver` - Channel receiver for subscription and order commands
+    /// * `handler` - Callback function to handle incoming WebSocket events
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the connection runs successfully, or a `BybitError` if an error occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+    /// let ws: Stream = Bybit::new(Some(api_key), Some(secret));
+    ///
+    /// // Start connection
+    /// tokio::spawn(async move {
+    ///     ws.ws_priv_subscribe_with_commands(cmd_rx, |event| {
+    ///         // Handle private events (orders, positions, etc.)
+    ///         Ok(())
+    ///     }).await.unwrap();
+    /// });
+    ///
+    /// // Dynamically subscribe to private topics
+    /// cmd_tx.send(RequestType::Subscribe(Subscription::new(
+    ///     "subscribe",
+    ///     vec!["order"]
+    /// )))?;
+    ///
+    /// // Later, add more subscriptions
+    /// cmd_tx.send(RequestType::Subscribe(Subscription::new(
+    ///     "subscribe",
+    ///     vec!["position", "execution"]
+    /// )))?;
+    /// ```
+    pub async fn ws_priv_subscribe_with_commands<'a, F>(
+        &self,
+        cmd_receiver: mpsc::UnboundedReceiver<RequestType<'a>>,
+        handler: F,
+    ) -> Result<(), BybitError>
+    where
+        F: FnMut(WebsocketEvents) -> Result<(), BybitError> + 'static + Send,
+        'a: 'static,
+    {
+        let response = self
+            .client
+            .wss_connect(WebsocketAPI::Private, None, true, Some(10))
+            .await?;
+        Self::event_loop(response, handler, Some(cmd_receiver)).await?;
+        Ok(())
+    }
+
     pub async fn ws_subscribe<'b, F>(
         &self,
         req: Subscription<'_>,
@@ -101,6 +159,72 @@ impl Stream {
             .wss_connect(endpoint, Some(request), false, None)
             .await?;
         Self::event_loop(response, handler, None).await?;
+        Ok(())
+    }
+
+    /// Connects to a public WebSocket endpoint with dynamic subscription control.
+    ///
+    /// This method allows bots to dynamically subscribe and unsubscribe to market data streams
+    /// after the connection is established. Use this when you need to change subscriptions
+    /// without reconnecting.
+    ///
+    /// # Arguments
+    ///
+    /// * `category` - The market category (Linear, Inverse, Spot, Option)
+    /// * `cmd_receiver` - Channel receiver for subscription and order commands
+    /// * `handler` - Callback function to handle incoming WebSocket events
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the connection runs successfully, or a `BybitError` if an error occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// let (cmd_tx, cmd_rx) = mpsc::unbounded_channel();
+    /// let ws: Stream = Bybit::new(None, None);
+    ///
+    /// // Start connection
+    /// tokio::spawn(async move {
+    ///     ws.ws_subscribe_with_commands(Category::Linear, cmd_rx, |event| {
+    ///         // Handle events
+    ///         Ok(())
+    ///     }).await.unwrap();
+    /// });
+    ///
+    /// // Dynamically subscribe to topics
+    /// cmd_tx.send(RequestType::Subscribe(Subscription::new(
+    ///     "subscribe",
+    ///     vec!["orderbook.50.BTCUSDT"]
+    /// )))?;
+    ///
+    /// // Later, unsubscribe
+    /// cmd_tx.send(RequestType::Unsubscribe(Subscription::new(
+    ///     "unsubscribe",
+    ///     vec!["orderbook.50.BTCUSDT"]
+    /// )))?;
+    /// ```
+    pub async fn ws_subscribe_with_commands<'a, F>(
+        &self,
+        category: Category,
+        cmd_receiver: mpsc::UnboundedReceiver<RequestType<'a>>,
+        handler: F,
+    ) -> Result<(), BybitError>
+    where
+        F: FnMut(WebsocketEvents) -> Result<(), BybitError> + 'static + Send,
+        'a: 'static,
+    {
+        let endpoint = {
+            match category {
+                Category::Linear => WebsocketAPI::PublicLinear,
+                Category::Inverse => WebsocketAPI::PublicInverse,
+                Category::Spot => WebsocketAPI::PublicSpot,
+                Category::Option => WebsocketAPI::PublicOption,
+            }
+        };
+        let response = self.client.wss_connect(endpoint, None, false, None).await?;
+        Self::event_loop(response, handler, Some(cmd_receiver)).await?;
+
         Ok(())
     }
 
