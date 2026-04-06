@@ -914,11 +914,17 @@ impl Stream {
                     match v {
                         RequestType::Subscribe(sub) | RequestType::Unsubscribe(sub) => {
                             let req = Self::build_subscription(sub);
-                            stream.send(WsMessage::Text(req)).await?;
+                            let _ = stream
+                                .send(WsMessage::Text(req))
+                                .await
+                                .map_err(BybitError::from);
                         }
                         _ => {
                             let req = Self::build_trade_subscription(v, Some(3000));
-                            stream.send(WsMessage::Text(req)).await?;
+                            let _ = stream
+                                .send(WsMessage::Text(req))
+                                .await
+                                .map_err(BybitError::from);
                         }
                     }
                 }
