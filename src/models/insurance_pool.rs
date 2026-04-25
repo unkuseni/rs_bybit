@@ -163,7 +163,7 @@ impl InsurancePoolUpdate {
     /// - "insurance.USDC" -> "USDC"
     /// - "insurance.inverse" -> "inverse"
     pub fn contract_group(&self) -> Option<&str> {
-        self.topic.split('.').last()
+        self.topic.split('.').next_back()
     }
 
     /// Returns true if this is a snapshot update.

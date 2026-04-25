@@ -92,7 +92,7 @@ impl WsTicker {
     pub fn timestamp_datetime(&self) -> DateTime<Utc> {
         let secs = (self.ts / 1000) as i64;
         let nanos = ((self.ts % 1000) * 1_000_000) as u32;
-        DateTime::from_timestamp(secs, nanos).unwrap_or_else(|| Utc::now())
+        DateTime::from_timestamp(secs, nanos).unwrap_or_else(Utc::now)
     }
 
     /// Calculates the age of the ticker data in milliseconds.

@@ -238,7 +238,7 @@ impl AsRef<str> for API {
                 Account::Information => "/v5/account/info",
                 Account::TransactionLog => "/v5/account/transaction-log",
                 Account::SMPGroupID => "/v5/account/smp-group",
-                Account::SetMarginMode => "/v5/aaccount/set-margin-mode",
+                Account::SetMarginMode => "/v5/account/set-margin-mode",
                 Account::SetSpotHedging => "/v5/account/set-hedging-mode",
             },
             API::Asset(route) => match route {
@@ -278,7 +278,7 @@ impl AsRef<str> for API {
             },
             API::SpotLeverage(route) => match route {
                 SpotLeverage::Info => "/v5/spot-lever-token/info",
-                SpotLeverage::Marketinfo => "v5/spot-lever-token/reference",
+                SpotLeverage::Marketinfo => "/v5/spot-lever-token/reference",
                 SpotLeverage::Purchase => "/v5/spot-lever-token/purchase",
                 SpotLeverage::Redeem => "/v5/spot-lever-token/redeem",
                 SpotLeverage::OrderRecord => "/v5/spot-lever-token/order-record",

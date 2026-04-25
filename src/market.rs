@@ -7,12 +7,10 @@ pub struct MarketData {
 }
 
 /// Market Data endpoints
-
 impl MarketData {
     /// Retrieves historical price klines.
     ///
     /// This method fetches historical klines (candlestick data) for a specified category, trading pair,
-
     /// and interval. It supports additional parameters to define a date range and to limit the response size.
     ///
     /// Suitable for USDT perpetual, USDC contract, and Inverse contract categories.
@@ -75,7 +73,7 @@ impl MarketData {
     /// - Network or parsing errors occur
     pub async fn get_klines<'b>(&self, req: KlineRequest<'_>) -> Result<KlineResponse, BybitError> {
         // Validate request parameters
-        req.validate().map_err(|e| BybitError::Base(e))?;
+        req.validate().map_err(BybitError::Base)?;
 
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
 
@@ -116,7 +114,6 @@ impl MarketData {
     /// Provides historical kline data for mark prices based on the specified category, symbol, and interval.
     /// Optional parameters can be used to define the range of the data with start and end times, as well as
     /// to limit the number of kline entries returned. This function supports queries for USDT perpetual,
-
     /// USDC contract, and Inverse contract categories.
     ///
     /// # Arguments
@@ -131,9 +128,8 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result<Vec<MarkPriceKline>, Error>` containing the historical mark price kline data if successful,
-
     /// or an error otherwise.
-
+    ///
     /// Retrieves historical mark price kline data for perpetual contracts.
     ///
     /// Mark price is a reference price used to calculate funding rates and trigger
@@ -183,7 +179,7 @@ impl MarketData {
         req: KlineRequest<'_>,
     ) -> Result<MarkPriceKlineResponse, BybitError> {
         // Validate request parameters
-        req.validate().map_err(|e| BybitError::Base(e))?;
+        req.validate().map_err(BybitError::Base)?;
 
         // Validate category (must be Linear or Inverse for mark price klines)
         let category = req.category.unwrap_or(Category::Linear);
@@ -297,7 +293,7 @@ impl MarketData {
         req: KlineRequest<'_>,
     ) -> Result<IndexPriceKlineResponse, BybitError> {
         // Validate request parameters
-        req.validate().map_err(|e| BybitError::Base(e))?;
+        req.validate().map_err(BybitError::Base)?;
 
         // Validate category (must be Linear or Inverse for index price klines)
         let category = req.category.unwrap_or(Category::Linear);
@@ -396,7 +392,7 @@ impl MarketData {
         req: KlineRequest<'_>,
     ) -> Result<PremiumIndexPriceKlineResponse, BybitError> {
         // Validate request parameters
-        req.validate().map_err(|e| BybitError::Base(e))?;
+        req.validate().map_err(BybitError::Base)?;
 
         // Validate category (must be Linear for premium index klines)
         let category = req.category.unwrap_or(Category::Linear);
@@ -444,7 +440,6 @@ impl MarketData {
     ///
     /// This function queries the exchange for instruments, optionally filtered by the provided
     /// symbol, status, base coin, and result count limit. It supports both Futures and Spot instruments,
-
     /// returning results encapsulated in the `InstrumentInfo` enum.
     ///
     /// # Arguments
@@ -526,7 +521,6 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result<OrderBook, Error>` which is Ok if the order book is successfully retrieved,
-
     /// or an Err with a detailed error message otherwise.
     pub async fn get_depth<'b>(
         &self,
@@ -643,7 +637,6 @@ impl MarketData {
     /// Asynchronously retrieves the funding history based on specified criteria.
     ///
     /// This function obtains historical funding rates for futures contracts given a category,
-
     /// symbol, and an optional time range and limit. Only Linear or Inverse categories are supported.
     ///
     /// # Arguments
@@ -657,7 +650,6 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result<Vec<FundingRate>, Error>` representing the historical funding rates if the request is successful,
-
     /// otherwise an error.
     ///
     /// # Errors
@@ -717,7 +709,6 @@ impl MarketData {
     /// # Returns
     ///
     /// Returns `Ok(Vec<Trade>)` containing the recent trades if the operation is successful,
-
     /// or an `Err` with an error message if it fails.
     pub async fn get_recent_trades<'b>(
         &self,
@@ -746,7 +737,6 @@ impl MarketData {
     /// Retrieves open interest for a specific market category and symbol over a defined time interval.
     ///
     /// Open interest is the total number of outstanding derivative contracts, such as futures or options,
-
     /// that have not been settled. This function provides a summary of such open interests.
     ///
     /// # Arguments
@@ -1043,7 +1033,6 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result` type containing either a `LongShortRatioSummary` upon success or an error message.
-
     pub async fn get_longshort_ratio(
         &self,
         category: Category,

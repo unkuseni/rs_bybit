@@ -233,8 +233,7 @@ impl FuturesTicker {
 
     /// Returns the next funding time as a DateTime.
     pub fn next_funding_time_datetime(&self) -> DateTime<Utc> {
-        DateTime::from_timestamp((self.next_funding_time / 1000) as i64, 0)
-            .unwrap_or_else(|| Utc::now())
+        DateTime::from_timestamp((self.next_funding_time / 1000) as i64, 0).unwrap_or_else(Utc::now)
     }
 
     /// Returns the time until next funding in seconds.

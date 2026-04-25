@@ -114,11 +114,7 @@ impl SystemStatusWebsocketItem {
 
     /// Returns the duration of the maintenance in milliseconds
     pub fn duration(&self) -> u64 {
-        if self.end > self.begin {
-            self.end - self.begin
-        } else {
-            0
-        }
+        self.end.saturating_sub(self.begin)
     }
 }
 

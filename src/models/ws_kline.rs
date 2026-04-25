@@ -81,7 +81,7 @@ impl WsKline {
     ///
     /// For a topic like "kline.1m.BTCUSDT", returns "BTCUSDT".
     pub fn symbol(&self) -> Option<&str> {
-        self.topic.split('.').last()
+        self.topic.split('.').next_back()
     }
 
     /// Returns the interval extracted from the topic.
@@ -132,11 +132,7 @@ impl WsKline {
     /// Returns the age of the k-line update in milliseconds.
     pub fn age_ms(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        if now > self.timestamp {
-            now - self.timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.timestamp)
     }
 
     /// Returns true if the k-line update is stale.
@@ -1336,11 +1332,7 @@ impl WsKline {
             return None;
         }
 
-        let gains: f64 = excess_returns
-            .iter()
-            .filter(|&&r| r > 0.0)
-            .map(|&r| r)
-            .sum();
+        let gains: f64 = excess_returns.iter().filter(|&&r| r > 0.0).copied().sum();
 
         let losses: f64 = excess_returns
             .iter()
@@ -1946,8 +1938,8 @@ impl WsKline {
         let mut report = String::new();
 
         // Basic information
-        report.push_str(&format!("K-line Analysis Report\n"));
-        report.push_str(&format!("=====================\n"));
+        report.push_str("K-line Analysis Report\n");
+        report.push_str("=====================\n");
         report.push_str(&format!("Symbol: {}\n", self.symbol().unwrap_or("Unknown")));
         report.push_str(&format!(
             "Interval: {}\n",
@@ -1964,11 +1956,11 @@ impl WsKline {
             "Valid for Trading: {}\n",
             self.is_valid_for_trading()
         ));
-        report.push_str("\n");
+        report.push('\n');
 
         // Latest k-line information
         if let Some(latest) = self.latest() {
-            report.push_str(&format!("Latest K-line:\n"));
+            report.push_str("Latest K-line:\n");
             report.push_str(&format!("  Open: {:.8}\n", latest.open));
             report.push_str(&format!("  High: {:.8}\n", latest.high));
             report.push_str(&format!("  Low: {:.8}\n", latest.low));
@@ -1983,11 +1975,11 @@ impl WsKline {
             ));
             report.push_str(&format!("  Interval: {} ms\n", latest.interval));
             report.push_str(&format!("  Confirm: {}\n", latest.confirm));
-            report.push_str("\n");
+            report.push('\n');
         }
 
         // Price analysis
-        report.push_str(&format!("Price Analysis:\n"));
+        report.push_str("Price Analysis:\n");
         if let Some(change) = self.latest_price_change() {
             report.push_str(&format!(
                 "  Price Change: {:.8} ({})\n",
@@ -2013,10 +2005,10 @@ impl WsKline {
         report.push_str(&format!("  Bullish: {}\n", self.is_latest_bullish()));
         report.push_str(&format!("  Bearish: {}\n", self.is_latest_bearish()));
         report.push_str(&format!("  Doji: {}\n", self.is_latest_doji()));
-        report.push_str("\n");
+        report.push('\n');
 
         // Volume analysis
-        report.push_str(&format!("Volume Analysis:\n"));
+        report.push_str("Volume Analysis:\n");
         if let Some(volume) = self.latest_volume() {
             report.push_str(&format!("  Volume: {:.8}\n", volume));
         }
@@ -2032,11 +2024,11 @@ impl WsKline {
         if let Some(volume_ratio) = self.volume_ratio(period) {
             report.push_str(&format!("  Volume Ratio: {:.4}\n", volume_ratio));
         }
-        report.push_str("\n");
+        report.push('\n');
 
         // Technical indicators (if enough data)
         if self.data.len() >= 14 {
-            report.push_str(&format!("Technical Indicators (14-period):\n"));
+            report.push_str("Technical Indicators (14-period):\n");
             if let Some(rsi) = self.relative_strength_index(14) {
                 report.push_str(&format!("  RSI: {:.2}\n", rsi));
                 report.push_str(&format!("    Overbought (>70): {}\n", rsi > 70.0));
@@ -2047,7 +2039,7 @@ impl WsKline {
             }
             if let Some((upper, middle, lower)) = self.bollinger_bands(20, 2.0) {
                 if let Some(close) = self.latest_close() {
-                    report.push_str(&format!("  Bollinger Bands:\n"));
+                    report.push_str("  Bollinger Bands:\n");
                     report.push_str(&format!("    Upper: {:.8}\n", upper));
                     report.push_str(&format!("    Middle: {:.8}\n", middle));
                     report.push_str(&format!("    Lower: {:.8}\n", lower));
@@ -2057,7 +2049,7 @@ impl WsKline {
                     ));
                 }
             }
-            report.push_str("\n");
+            report.push('\n');
         }
 
         // Risk metrics
@@ -2074,7 +2066,7 @@ impl WsKline {
         if let Some(var) = self.expected_shortfall(period, 0.95) {
             report.push_str(&format!("  Expected Shortfall (95%): {:.4}%\n", var));
         }
-        report.push_str("\n");
+        report.push('\n');
 
         // Performance metrics
         report.push_str(&format!("Performance Metrics ({} periods):\n", period));
@@ -2093,7 +2085,7 @@ impl WsKline {
         if let Some(omega) = self.omega_ratio(period, 0.0) {
             report.push_str(&format!("  Omega Ratio: {:.4}\n", omega));
         }
-        report.push_str("\n");
+        report.push('\n');
 
         // Trading statistics
         report.push_str(&format!("Trading Statistics ({} periods):\n", period));
@@ -2115,10 +2107,10 @@ impl WsKline {
                 predictive_score
             ));
         }
-        report.push_str("\n");
+        report.push('\n');
 
         // Summary
-        report.push_str(&format!("Summary:\n"));
+        report.push_str("Summary:\n");
         let mut summary_score = 0.0;
         let mut summary_count = 0;
 
@@ -2173,11 +2165,11 @@ impl WsKline {
             report.push_str(&format!("  Overall Score: {:.1}/100\n", overall_score));
 
             if overall_score >= 70.0 {
-                report.push_str(&format!("  Recommendation: Favorable conditions\n"));
+                report.push_str("  Recommendation: Favorable conditions\n");
             } else if overall_score >= 40.0 {
-                report.push_str(&format!("  Recommendation: Neutral conditions\n"));
+                report.push_str("  Recommendation: Neutral conditions\n");
             } else {
-                report.push_str(&format!("  Recommendation: Unfavorable conditions\n"));
+                report.push_str("  Recommendation: Unfavorable conditions\n");
             }
         }
 

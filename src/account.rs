@@ -242,8 +242,7 @@ impl AccountManager {
     /// # Arguments
     ///
     /// * `coin` - The optional coin for which to retrieve the collateral information. If not specified,
-
-    /// information for all coins is returned.
+    ///   information for all coins is returned.
     ///
     /// # Returns
     ///
@@ -308,7 +307,7 @@ impl AccountManager {
         // Send the signed request to the Bybit API and await the response.
         let response: FeeRateResponse = self
             .client
-            .post_signed(API::Account(Account::FeeRate), self.recv_window, Some(req))
+            .get_signed(API::Account(Account::FeeRate), self.recv_window, Some(req))
             .await?;
 
         // Return the response.
@@ -471,7 +470,6 @@ impl AccountManager {
     /// # Arguments
     ///
     /// * `spot_hedging` - The desired spot hedging mode. `true` sets the mode to "ON",
-
     ///   `false` sets the mode to "OFF".
     ///
     /// # Returns

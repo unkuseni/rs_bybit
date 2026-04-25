@@ -48,7 +48,7 @@ impl RPIOrderbookUpdate {
     /// Extracts the trading pair symbol from the WebSocket topic.
     /// Example: "orderbook.rpi.BTCUSDT" -> "BTCUSDT"
     pub fn symbol_from_topic(&self) -> Option<&str> {
-        self.topic.split('.').last()
+        self.topic.split('.').next_back()
     }
 
     /// Returns true if this is a snapshot update.
