@@ -910,8 +910,8 @@ impl Stream {
                 _ => {}
             }
             if let Some(sender) = request_sender.as_mut() {
-                if let Some(v) = sender.recv().await {
-                    match v {
+                match sender.try_recv() {
+                    Ok(v) => match v {
                         RequestType::Subscribe(sub) | RequestType::Unsubscribe(sub) => {
                             let req = Self::build_subscription(sub);
                             let _ = stream
@@ -926,6 +926,10 @@ impl Stream {
                                 .await
                                 .map_err(BybitError::from);
                         }
+                    },
+                    Err(mpsc::error::TryRecvError::Empty) => {}
+                    Err(mpsc::error::TryRecvError::Disconnected) => {
+                        request_sender = None;
                     }
                 }
             }

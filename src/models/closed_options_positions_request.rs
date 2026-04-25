@@ -129,7 +129,7 @@ impl<'a> ClosedOptionsPositionsRequest<'a> {
 
         // Validate limit range
         if let Some(limit) = self.limit {
-            if limit < 1 || limit > 100 {
+            if !(1..=100).contains(&limit) {
                 return Err("Limit must be between 1 and 100".to_string());
             }
         }

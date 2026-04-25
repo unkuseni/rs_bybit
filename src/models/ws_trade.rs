@@ -97,11 +97,7 @@ impl WsTrade {
     /// Returns the age of the trade in milliseconds.
     pub fn age_ms(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        if now > self.timestamp {
-            now - self.timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.timestamp)
     }
 
     /// Returns true if the trade is stale (older than 5 seconds).
@@ -290,7 +286,7 @@ impl WsTrade {
             &self.side,
             self.volume,
             self.price,
-            self.tick_direction.clone(),
+            self.tick_direction,
             &self.id,
             self.buyer_is_maker,
         )

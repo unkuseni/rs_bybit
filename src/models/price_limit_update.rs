@@ -218,7 +218,7 @@ impl PriceLimitUpdate {
     /// Parses the WebSocket topic to extract the trading symbol.
     /// Example: "priceLimit.BTCUSDT" -> "BTCUSDT"
     pub fn symbol_from_topic(&self) -> Option<&str> {
-        self.topic.split('.').last()
+        self.topic.split('.').next_back()
     }
 
     /// Returns true if the symbol in the topic matches the symbol in the data.
@@ -243,11 +243,7 @@ impl PriceLimitUpdate {
     /// Calculates how old this update is relative to the current time.
     pub fn age_ms(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        if now > self.timestamp {
-            now - self.timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.timestamp)
     }
 
     /// Returns true if the update is stale (older than 1 second).

@@ -182,7 +182,11 @@ impl Trader {
         let request = build_request(&parameters);
         let response: OpenOrdersResponse = self
             .client
-            .get_signed(API::Trade(Trade::OpenOrders), 5000, Some(request))
+            .get_signed(
+                API::Trade(Trade::OpenOrders),
+                self.recv_window,
+                Some(request),
+            )
             .await?;
 
         Ok(response)
@@ -351,9 +355,8 @@ impl Trader {
             Category::Linear | Category::Inverse | Category::Option => {
                 parameters.insert("category".into(), req.category.as_str().into());
             }
-            // If the category is invalid, print an error message
             _ => {
-                error!("Invalid category");
+                return Err(BybitError::Base("Invalid category".to_string()));
             }
         }
 
@@ -417,8 +420,7 @@ impl Trader {
                 parameters.insert("category".into(), req.category.as_str().into());
             }
             _ => {
-                // Print an error message if the category is invalid
-                error!("Invalid category");
+                return Err(BybitError::Base("Invalid category".to_string()));
             }
         }
 
@@ -490,13 +492,13 @@ impl Trader {
                 parameters.insert("category".into(), req.category.as_str().into());
             }
             _ => {
-                error!("Invalid category");
+                return Err(BybitError::Base("Invalid category".to_string()));
             }
         }
         let mut requests_array: Vec<Value> = Vec::new();
         for value in req.requests {
             let action = Action::Cancel(value, true);
-            let cancel_object = Self::build_orders(action); // Assuming this returns the correct object structure
+            let cancel_object = Self::build_orders(action);
             let built_cancels = json!(cancel_object);
             requests_array.push(built_cancels);
         }

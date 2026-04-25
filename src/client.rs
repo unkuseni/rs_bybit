@@ -316,43 +316,6 @@ impl Client {
         Ok(hex_signature)
     }
 
-    /// Internal function to sign a POST request message.
-    ///
-    /// # Arguments
-    ///
-    /// * `timestamp` - The timestamp of the request.
-    /// * `recv_window` - The receive window of the request.
-    /// * `request` - The request body as an optional string.
-    ///
-    /// # Returns
-    ///
-    /// The signed message as a hex-encoded string.
-    fn _sign_post_message(
-        &self,
-        timestamp: &str,
-        recv_window: &str,
-        request: Option<String>,
-    ) -> Result<String, BybitError> {
-        // Create a new HMAC SHA256 instance with the secret key
-        let mut mac = self.mac_from_secret_key()?;
-
-        // Update the MAC with the timestamp
-        mac.update(timestamp.as_bytes());
-        // Update the MAC with the API key
-        mac.update(self.api_key.as_bytes());
-        // Update the MAC with the receive window
-        mac.update(recv_window.as_bytes());
-        // Update the MAC with the request body, if provided
-        if let Some(req) = request {
-            mac.update(req.as_bytes());
-        }
-
-        // Finalize the MAC and encode the result as a hex string
-        let hex_signature = hex_encode(mac.finalize().into_bytes());
-
-        Ok(hex_signature)
-    }
-
     /// Internal function to handle the response from a HTTP request.
     ///
     /// # Arguments
@@ -363,17 +326,14 @@ impl Client {
     ///
     /// The result of deserializing the response body into a specific type.
     /// Returns `Ok(T)` if the response status is `StatusCode::OK`,
-
     /// returns `Err(BybitError::BybitError(BybitContentError))` if the response
     /// status is `StatusCode::BAD_REQUEST`, returns `Err(BybitError::InternalServerError)`
     /// if the response status is `StatusCode::INTERNAL_SERVER_ERROR`,
-
     /// returns `Err(BybitError::ServiceUnavailable)` if the response status is
     /// `StatusCode::SERVICE_UNAVAILABLE`, returns `Err(BybitError::Unauthorized)`
     /// if the response status is `StatusCode::UNAUTHORIZED`, and returns
     /// `Err(BybitError::StatusCode(status))` if the response status is any other
     /// value.
-
     async fn handler<T: DeserializeOwned + Send + 'static>(
         &self,
         response: ReqwestResponse,

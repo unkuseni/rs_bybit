@@ -445,10 +445,7 @@ impl RPIOrderbook {
             total_qty / (total_qty + 1000.0)
         };
 
-        let rpi_score = {
-            let avg_rpi_ratio = (self.average_ask_rpi_ratio() + self.average_bid_rpi_ratio()) / 2.0;
-            avg_rpi_ratio
-        };
+        let rpi_score = { (self.average_ask_rpi_ratio() + self.average_bid_rpi_ratio()) / 2.0 };
 
         spread_score * 0.3 + depth_score * 0.3 + rpi_score * 0.4
     }

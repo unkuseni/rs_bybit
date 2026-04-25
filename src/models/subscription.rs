@@ -1,7 +1,7 @@
 /// Parameters for WebSocket subscription requests.
 ///
 /// Used to construct a WebSocket subscription request to subscribe to real-time data streams, such as order book updates or trade events. Bots use this to configure WebSocket feeds for market monitoring and trading signals in perpetual futures trading.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Subscription<'a> {
     /// The operation type (e.g., "subscribe").
     ///
@@ -14,18 +14,21 @@ pub struct Subscription<'a> {
     pub args: Vec<&'a str>,
 }
 
+impl<'a> Default for Subscription<'a> {
+    fn default() -> Self {
+        Self {
+            op: "subscribe",
+            args: vec![],
+        }
+    }
+}
+
 impl<'a> Subscription<'a> {
     /// Constructs a new Subscription with specified parameters.
     ///
     /// Allows customization of the WebSocket subscription. Bots should use this to specify the operation and subscription arguments for their data needs.
     pub fn new(op: &'a str, args: Vec<&'a str>) -> Self {
         Self { op, args }
-    }
-    /// Creates a default Subscription.
-    ///
-    /// Returns a subscription with `op` set to `"subscribe"` and an empty argument list. Suitable for testing but should be customized with valid topics for production.
-    pub fn default() -> Subscription<'a> {
-        Self::new("subscribe", vec![])
     }
 
     /// Returns a new Subscription with `op` set to `"unsubscribe"`.

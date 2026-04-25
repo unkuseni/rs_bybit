@@ -110,22 +110,20 @@ impl<'a> InstrumentRequest<'a> {
 
         // Validate category-specific constraints
         match self.category {
-            Category::Spot => {
+            Category::Spot
                 // Spot does not support pagination
-                if self.limit.is_some() || self.cursor.is_some() {
+                if (self.limit.is_some() || self.cursor.is_some()) => {
                     return Err(
                         "Spot category does not support limit or cursor parameters".to_string()
                     );
                 }
-            }
-            Category::Option => {
+            Category::Option
                 // Option requires either symbol or base_coin
-                if self.symbol.is_none() && self.base_coin.is_none() {
+                if self.symbol.is_none() && self.base_coin.is_none() => {
                     return Err(
                         "Option category requires either symbol or base_coin parameter".to_string(),
                     );
                 }
-            }
             _ => {} // Linear and Inverse have no special validation
         }
 

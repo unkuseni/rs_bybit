@@ -481,11 +481,7 @@ impl WsOrderBook {
 
     /// Returns the order book age based on sequence numbers.
     pub fn age(&self, current_seq: u64) -> u64 {
-        if current_seq >= self.seq {
-            current_seq - self.seq
-        } else {
-            0
-        }
+        current_seq.saturating_sub(self.seq)
     }
 
     /// Returns true if the order book is stale.
@@ -709,7 +705,7 @@ impl WsOrderBook {
         let mut report = String::new();
 
         report.push_str(&format!("Order Book Analysis: {}\n", self.symbol));
-        report.push_str(&format!("================================\n"));
+        report.push_str("================================\n");
 
         // Basic metrics
         if let (Some(bid), Some(ask)) = (self.best_bid(), self.best_ask()) {
@@ -870,11 +866,7 @@ impl OrderBookSnapshot {
     /// Returns the age of the snapshot in milliseconds.
     pub fn age_ms(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        if now > self.timestamp {
-            now - self.timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.timestamp)
     }
 
     /// Returns true if the snapshot is stale.

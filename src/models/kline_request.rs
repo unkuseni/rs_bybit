@@ -146,7 +146,7 @@ impl<'a> From<&'a Interval> for Cow<'a, str> {
 /// // Or create a simple request
 /// let simple_request = KlineRequest::simple("BTCUSDT", Interval::D1);
 /// ```
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct KlineRequest<'a> {
     /// The product category (e.g., Spot, Linear, Inverse, Option).
     ///
@@ -181,13 +181,8 @@ pub struct KlineRequest<'a> {
     pub limit: Option<u64>,
 }
 
-impl<'a> KlineRequest<'a> {
-    /// Creates a default Kline request with preset values.
-    ///
-    /// Returns a `KlineRequest` with `symbol` set to `"BTCUSDT"`, `interval` set to `Interval::H1` (1 hour),
-    /// and other fields as defaults. Useful for quick testing or prototyping trading bots but should be
-    /// customized for production to match specific trading pairs and intervals.
-    pub fn default() -> KlineRequest<'a> {
+impl<'a> Default for KlineRequest<'a> {
+    fn default() -> Self {
         KlineRequest {
             category: None,
             symbol: Cow::Borrowed("BTCUSDT"),
@@ -197,7 +192,9 @@ impl<'a> KlineRequest<'a> {
             limit: None,
         }
     }
+}
 
+impl<'a> KlineRequest<'a> {
     /// Constructs a new Kline request with specified parameters.
     ///
     /// Allows full customization of the Kline request. Trading bots should use this to specify exact
@@ -307,7 +304,7 @@ impl<'a> KlineRequest<'a> {
     pub fn validate(&self) -> Result<(), String> {
         // Validate limit range
         if let Some(limit) = self.limit {
-            if limit < 1 || limit > 1000 {
+            if !(1..=1000).contains(&limit) {
                 return Err(format!("Limit must be between 1 and 1000, got {}", limit));
             }
         }

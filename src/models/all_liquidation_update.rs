@@ -98,11 +98,7 @@ impl AllLiquidationData {
     /// Calculates how long ago this liquidation occurred relative to current time.
     pub fn age_ms(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        if now > self.updated_time {
-            now - self.updated_time
-        } else {
-            0
-        }
+        now.saturating_sub(self.updated_time)
     }
 
     /// Returns true if the liquidation is recent (≤ 1 second old).
@@ -243,7 +239,7 @@ impl AllLiquidationUpdate {
     /// Parses the WebSocket topic to extract the trading symbol.
     /// Example: "allLiquidation.BTCUSDT" -> "BTCUSDT"
     pub fn symbol_from_topic(&self) -> Option<&str> {
-        self.topic.split('.').last()
+        self.topic.split('.').next_back()
     }
 
     /// Returns true if this is a snapshot update.
@@ -264,11 +260,7 @@ impl AllLiquidationUpdate {
     /// Calculates how old this update is relative to the current time.
     pub fn age_ms(&self) -> u64 {
         let now = chrono::Utc::now().timestamp_millis() as u64;
-        if now > self.timestamp {
-            now - self.timestamp
-        } else {
-            0
-        }
+        now.saturating_sub(self.timestamp)
     }
 
     /// Returns true if the update is stale (older than 1 second).
