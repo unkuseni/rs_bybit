@@ -915,14 +915,14 @@ impl Stream {
                         RequestType::Subscribe(sub) | RequestType::Unsubscribe(sub) => {
                             let req = Self::build_subscription(sub);
                             let _ = stream
-                                .send(WsMessage::Text(req))
+                                .send(WsMessage::Text(req.into()))
                                 .await
                                 .map_err(BybitError::from);
                         }
                         _ => {
                             let req = Self::build_trade_subscription(v, Some(3000));
                             let _ = stream
-                                .send(WsMessage::Text(req))
+                                .send(WsMessage::Text(req.into()))
                                 .await
                                 .map_err(BybitError::from);
                         }
@@ -939,7 +939,7 @@ impl Stream {
                 parameters.insert("op".into(), "ping".into());
                 let request = build_json_request(&parameters);
                 let _ = stream
-                    .send(WsMessage::Text(request))
+                    .send(WsMessage::Text(request.into()))
                     .await
                     .map_err(BybitError::from);
                 interval = Instant::now();

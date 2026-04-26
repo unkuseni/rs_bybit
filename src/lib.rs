@@ -39,7 +39,7 @@ pub mod prelude {
     pub(crate) use derive_more::{Display, TryUnwrap};
     pub(crate) use futures::sink::SinkExt;
     pub(crate) use hex::encode as hex_encode;
-    pub(crate) use hmac::{Hmac, Mac};
+    pub(crate) use hmac::{Hmac, KeyInit, Mac};
     pub(crate) use log::error;
     pub(crate) use reqwest::{
         header::{HeaderMap, HeaderName, HeaderValue, CONTENT_TYPE, USER_AGENT},

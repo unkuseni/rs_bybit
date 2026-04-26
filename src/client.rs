@@ -437,7 +437,7 @@ impl Client {
                 if private {
                     // Send the authentication message if `private` is true
                     ws_stream
-                        .send(WsMessage::Text(auth_msg.to_string()))
+                        .send(WsMessage::Text(auth_msg.to_string().into()))
                         .await?;
 
                     // Wait for authentication response with timeout
@@ -466,7 +466,7 @@ impl Client {
                 // Send the request body if it is not empty
                 let request = request_body.unwrap_or_default();
                 if !request.is_empty() {
-                    ws_stream.send(WsMessage::Text(request)).await?;
+                    ws_stream.send(WsMessage::Text(request.into())).await?;
                 }
                 Ok(ws_stream)
             }
