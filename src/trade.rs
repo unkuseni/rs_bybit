@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone)]
 pub struct Trader {
     pub client: Client,
-    pub recv_window: u16,
+    pub recv_window: u64,
 }
 
 /// Creates an order with various options for different account types and contract types.

@@ -374,6 +374,6 @@ mod unit_tests {
 
         // This should fail with authentication error when actually called
         // We're just testing that the struct can be created
-        assert!(!position.client.api_key.is_empty());
+        assert!(position.client.api_key.is_some());
     }
 }

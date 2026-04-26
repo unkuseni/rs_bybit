@@ -3,13 +3,22 @@ use crate::prelude::*;
 use futures::{SinkExt, StreamExt};
 use log::trace;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Instant;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use tokio::time::Duration;
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::{tungstenite::Message as WsMessage, MaybeTlsStream};
+
+/// Interval at which the WebSocket event loop sends a ping to keep the connection alive.
+const PING_INTERVAL: Duration = Duration::from_secs(30);
+
+/// Helper to send an item through an unbounded channel, mapping the error to `BybitError`.
+fn send_or_err<T>(sender: &mpsc::UnboundedSender<T>, item: T) -> Result<(), BybitError> {
+    sender.send(item).map_err(|e| BybitError::ChannelSendError {
+        underlying: e.to_string(),
+    })
+}
 
 #[derive(Clone)]
 pub struct Stream {
@@ -74,7 +83,7 @@ impl Stream {
             .client
             .wss_connect(WebsocketAPI::Private, Some(request), true, Some(10))
             .await?;
-        if let Ok(_) = Self::event_loop(response, handler, None).await {}
+        Self::event_loop(response, handler, None).await?;
         Ok(())
     }
 
@@ -145,14 +154,7 @@ impl Stream {
     where
         F: FnMut(WebsocketEvents) -> Result<(), BybitError> + 'static + Send,
     {
-        let endpoint = {
-            match category {
-                Category::Linear => WebsocketAPI::PublicLinear,
-                Category::Inverse => WebsocketAPI::PublicInverse,
-                Category::Spot => WebsocketAPI::PublicSpot,
-                Category::Option => WebsocketAPI::PublicOption,
-            }
-        };
+        let endpoint = category.public_ws_endpoint();
         let request = Self::build_subscription(req);
         let response = self
             .client
@@ -214,14 +216,7 @@ impl Stream {
         F: FnMut(WebsocketEvents) -> Result<(), BybitError> + 'static + Send,
         'a: 'static,
     {
-        let endpoint = {
-            match category {
-                Category::Linear => WebsocketAPI::PublicLinear,
-                Category::Inverse => WebsocketAPI::PublicInverse,
-                Category::Spot => WebsocketAPI::PublicSpot,
-                Category::Option => WebsocketAPI::PublicOption,
-            }
-        };
+        let endpoint = category.public_ws_endpoint();
         let response = self.client.wss_connect(endpoint, None, false, None).await?;
         Self::event_loop(response, handler, Some(cmd_receiver)).await?;
 
@@ -243,7 +238,10 @@ impl Stream {
         build_json_request(&parameters)
     }
 
-    pub fn build_trade_subscription(orders: RequestType, recv_window: Option<u64>) -> String {
+    pub fn build_trade_subscription(
+        orders: RequestType,
+        recv_window: Option<u64>,
+    ) -> Result<String, BybitError> {
         let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
         parameters.insert("reqId".into(), generate_random_uid(16).into());
         let mut header_map: BTreeMap<String, String> = BTreeMap::new();
@@ -287,9 +285,14 @@ impl Stream {
                     build_ws_orders(RequestType::CancelBatch(order)),
                 );
             }
-            _ => {}
+            _ => {
+                return Err(BybitError::Base(format!(
+                    "Unsupported trade request type: {:?}",
+                    std::any::type_name::<RequestType>()
+                )));
+            }
         }
-        build_json_request(&parameters)
+        Ok(build_json_request(&parameters))
     }
 
     /// Subscribes to the specified order book updates and handles the order book events
@@ -318,11 +321,7 @@ impl Stream {
         let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
         self.ws_subscribe(request, category, move |event| {
             if let WebsocketEvents::OrderBookEvent(order_book) = event {
-                sender
-                    .send(order_book)
-                    .map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                send_or_err(&sender, order_book)?;
             }
             Ok(())
         })
@@ -378,11 +377,7 @@ impl Stream {
         let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
         self.ws_subscribe(request, category, move |event| {
             if let WebsocketEvents::RPIOrderBookEvent(rpi_order_book) = event {
-                sender
-                    .send(rpi_order_book)
-                    .map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                send_or_err(&sender, rpi_order_book)?;
             }
             Ok(())
         })
@@ -417,11 +412,7 @@ impl Stream {
         let handler = move |event| {
             if let WebsocketEvents::TradeEvent(trades) = event {
                 for trade in trades.data {
-                    sender
-                        .send(trade)
-                        .map_err(|e| BybitError::ChannelSendError {
-                            underlying: e.to_string(),
-                        })?;
+                    send_or_err(&sender, trade)?;
                 }
             }
             Ok(())
@@ -452,7 +443,7 @@ impl Stream {
         category: Category,
         sender: mpsc::UnboundedSender<Ticker>,
     ) -> Result<(), BybitError> {
-        self._ws_tickers_internal(subs, category, sender, |ws_ticker: WsTicker| {
+        self.ws_tickers_internal(subs, category, sender, |ws_ticker: WsTicker| {
             Some(ws_ticker.data)
         })
         .await
@@ -480,7 +471,7 @@ impl Stream {
         category: Category,
         sender: mpsc::UnboundedSender<Timed<Ticker>>,
     ) -> Result<(), BybitError> {
-        self._ws_tickers_internal(subs, category, sender, |ticker: WsTicker| {
+        self.ws_tickers_internal(subs, category, sender, |ticker: WsTicker| {
             Some(Timed {
                 time: ticker.ts,
                 data: ticker.data,
@@ -521,33 +512,30 @@ impl Stream {
     /// }
     /// ```
     pub async fn ws_timed_linear_tickers(
-        self: Arc<Self>,
+        &self,
         subs: Vec<String>,
         sender: mpsc::UnboundedSender<Timed<LinearTickerDataSnapshot>>,
     ) -> Result<(), BybitError> {
         let (tx, mut rx) = mpsc::unbounded_channel::<Timed<LinearTickerData>>();
         // Spawn the WebSocket task
-        tokio::spawn({
-            let self_arc = Arc::clone(&self);
-            let subs = subs.clone();
-            async move {
-                self_arc
-                    ._ws_tickers_internal(
-                        subs.iter().map(|s| s.as_str()).collect(),
-                        Category::Linear,
-                        tx,
-                        |ticker: WsTicker| match &ticker.data {
-                            Ticker::Linear(linear) => Some(Timed {
-                                time: ticker.ts,
-                                data: linear.clone(),
-                            }),
-                            Ticker::Spot(_) => None,
-                            Ticker::Options(_) => None,
-                            Ticker::Futures(_) => None,
-                        },
-                    )
-                    .await
-            }
+        let self_clone = self.clone();
+        tokio::spawn(async move {
+            self_clone
+                .ws_tickers_internal(
+                    subs.iter().map(|s| s.as_str()).collect(),
+                    Category::Linear,
+                    tx,
+                    |ticker: WsTicker| match &ticker.data {
+                        Ticker::Linear(linear) => Some(Timed {
+                            time: ticker.ts,
+                            data: linear.clone(),
+                        }),
+                        Ticker::Spot(_) => None,
+                        Ticker::Options(_) => None,
+                        Ticker::Futures(_) => None,
+                    },
+                )
+                .await
         });
 
         // State to store snapshots for each symbol
@@ -564,11 +552,7 @@ impl Stream {
                     };
                     // Store the snapshot and send it
                     snapshots.insert(symbol.clone(), timed_snapshot.clone());
-                    sender
-                        .send(timed_snapshot)
-                        .map_err(|e| BybitError::ChannelSendError {
-                            underlying: e.to_string(),
-                        })?
+                    send_or_err(&sender, timed_snapshot)?
                 }
                 LinearTickerData::Delta(delta) => {
                     let symbol = delta.symbol.clone();
@@ -580,9 +564,7 @@ impl Stream {
                             time: ticker.time,
                         };
                         *snapshot_timed = new.clone();
-                        sender.send(new).map_err(|e| BybitError::ChannelSendError {
-                            underlying: e.to_string(),
-                        })?
+                        send_or_err(&sender, new)?
                     }
                     // If no snapshot exists for the symbol, skip the delta
                 }
@@ -592,7 +574,7 @@ impl Stream {
         Ok(())
     }
 
-    async fn _ws_tickers_internal<T, F>(
+    async fn ws_tickers_internal<T, F>(
         &self,
         subs: Vec<&str>,
         category: Category,
@@ -612,11 +594,7 @@ impl Stream {
         let handler = move |event| {
             if let WebsocketEvents::TickerEvent(ticker) = event {
                 if let Some(mapped) = filter_map(ticker) {
-                    sender
-                        .send(mapped)
-                        .map_err(|e| BybitError::ChannelSendError {
-                            underlying: e.to_string(),
-                        })?;
+                    send_or_err(&sender, mapped)?;
                 }
             }
             Ok(())
@@ -638,11 +616,7 @@ impl Stream {
 
         let handler = move |event| {
             if let WebsocketEvents::LiquidationEvent(liquidation) = event {
-                sender
-                    .send(liquidation.data)
-                    .map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                send_or_err(&sender, liquidation.data)?;
             }
             Ok(())
         };
@@ -662,11 +636,7 @@ impl Stream {
         let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
         self.ws_subscribe(request, category, move |event| {
             if let WebsocketEvents::KlineEvent(kline) = event {
-                sender
-                    .send(kline)
-                    .map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                send_or_err(&sender, kline)?;
             }
             Ok(())
         })
@@ -692,9 +662,7 @@ impl Stream {
         self.ws_priv_subscribe(request, move |event| {
             if let WebsocketEvents::PositionEvent(position) = event {
                 for v in position.data {
-                    sender.send(v).map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                    send_or_err(&sender, v)?;
                 }
             }
             Ok(())
@@ -722,9 +690,7 @@ impl Stream {
         self.ws_priv_subscribe(request, move |event| {
             if let WebsocketEvents::ExecutionEvent(execute) = event {
                 for v in execute.data {
-                    sender.send(v).map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                    send_or_err(&sender, v)?;
                 }
             }
             Ok(())
@@ -742,9 +708,7 @@ impl Stream {
         self.ws_priv_subscribe(request, move |event| {
             if let WebsocketEvents::FastExecEvent(execution) = event {
                 for v in execution.data {
-                    sender.send(v).map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                    send_or_err(&sender, v)?;
                 }
             }
             Ok(())
@@ -772,9 +736,7 @@ impl Stream {
         self.ws_priv_subscribe(request, move |event| {
             if let WebsocketEvents::OrderEvent(order) = event {
                 for v in order.data {
-                    sender.send(v).map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                    send_or_err(&sender, v)?;
                 }
             }
             Ok(())
@@ -791,9 +753,7 @@ impl Stream {
         self.ws_priv_subscribe(request, move |event| {
             if let WebsocketEvents::Wallet(wallet) = event {
                 for v in wallet.data {
-                    sender.send(v).map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                    send_or_err(&sender, v)?;
                 }
             }
             Ok(())
@@ -851,11 +811,7 @@ impl Stream {
 
         let handler = move |event| {
             if let WebsocketEvents::SystemStatusEvent(status_update) = event {
-                sender
-                    .send(status_update)
-                    .map_err(|e| BybitError::ChannelSendError {
-                        underlying: e.to_string(),
-                    })?;
+                send_or_err(&sender, status_update)?;
             }
             Ok(())
         };
@@ -895,11 +851,7 @@ impl Stream {
             let msg = stream.next().await;
             match msg {
                 Some(Ok(WsMessage::Text(msg))) => {
-                    if let Err(_) = handler.handle_msg(&msg) {
-                        return Err(BybitError::Base(
-                            "Error handling stream message".to_string(),
-                        ));
-                    }
+                    handler.handle_msg(&msg)?;
                 }
                 Some(Err(e)) => {
                     return Err(BybitError::from(e.to_string()));
@@ -920,11 +872,12 @@ impl Stream {
                                 .map_err(BybitError::from);
                         }
                         _ => {
-                            let req = Self::build_trade_subscription(v, Some(3000));
-                            let _ = stream
-                                .send(WsMessage::Text(req.into()))
-                                .await
-                                .map_err(BybitError::from);
+                            if let Ok(req) = Self::build_trade_subscription(v, Some(3000)) {
+                                let _ = stream
+                                    .send(WsMessage::Text(req.into()))
+                                    .await
+                                    .map_err(BybitError::from);
+                            }
                         }
                     },
                     Err(mpsc::error::TryRecvError::Empty) => {}
@@ -934,7 +887,7 @@ impl Stream {
                 }
             }
 
-            if interval.elapsed() > Duration::from_secs(30) {
+            if interval.elapsed() > PING_INTERVAL {
                 let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
                 parameters.insert("op".into(), "ping".into());
                 let request = build_json_request(&parameters);

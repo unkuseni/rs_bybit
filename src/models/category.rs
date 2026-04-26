@@ -40,4 +40,14 @@ impl Category {
             Category::Option => "option",
         }
     }
+
+    /// Returns the public WebSocket API endpoint for this category.
+    pub fn public_ws_endpoint(&self) -> WebsocketAPI {
+        match self {
+            Category::Linear => WebsocketAPI::PublicLinear,
+            Category::Inverse => WebsocketAPI::PublicInverse,
+            Category::Spot => WebsocketAPI::PublicSpot,
+            Category::Option => WebsocketAPI::PublicOption,
+        }
+    }
 }

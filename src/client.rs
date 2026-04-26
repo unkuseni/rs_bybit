@@ -8,10 +8,10 @@ use std::time::Duration;
 #[derive(Clone)]
 pub struct Client {
     /// The API key for the Bybit account.
-    pub api_key: String,
+    pub api_key: Option<String>,
 
     /// The secret key for the Bybit account.
-    pub secret_key: String,
+    pub secret_key: Option<String>,
 
     /// The host to make requests to.
     pub host: String,
@@ -40,19 +40,9 @@ impl Client {
 
         // Create a new instance of `Client` with the provided arguments.
         Client {
-            // Set the API key. If `api_key` is `None`, set it to an empty string.
-            api_key: match api_key {
-                Some(api_key) => api_key,
-                None => "".into(),
-            },
-            // Set the secret key. If `secret_key` is `None`, set it to an empty string.
-            secret_key: match secret_key {
-                Some(secret_key) => secret_key,
-                None => "".into(),
-            },
-            // Set the host.
+            api_key,
+            secret_key,
             host,
-            // Set the reqwest client.
             inner_client,
         }
     }
@@ -102,7 +92,7 @@ impl Client {
     pub async fn get_signed<T: DeserializeOwned + Send + 'static>(
         &self,
         endpoint: API,
-        recv_window: u16,
+        recv_window: u64,
         request: Option<String>,
     ) -> Result<T, BybitError> {
         // Construct the full URL
@@ -116,7 +106,7 @@ impl Client {
         // Sign the request, passing the query string for signature
         // The request is signed with the API secret key and requires
         // the `recv_window` for the request to be within the specified timeframe.
-        let headers = self.build_signed_headers(false, true, recv_window, Some(query_string))?;
+        let headers = self.build_signed_headers(false, true, recv_window, Some(&query_string))?;
 
         // Make the signed HTTP GET request
         let client = &self.inner_client;
@@ -175,26 +165,20 @@ impl Client {
     pub async fn post_signed<T: DeserializeOwned + Send + 'static>(
         &self,
         endpoint: API,
-        recv_window: u16,
+        recv_window: u64,
         raw_request_body: Option<String>,
     ) -> Result<T, BybitError> {
         // Construct the full URL
         let url = format!("{}{}", self.host, endpoint.as_ref());
 
         // Sign the request, passing the raw request body for signature
-        // The request is signed with the API secret key and requires
-        // the `recv_window` for the request to be within the specified timeframe.
         let headers =
-            self.build_signed_headers(true, true, recv_window, raw_request_body.clone())?;
+            self.build_signed_headers(true, true, recv_window, raw_request_body.as_deref())?;
 
         // Make the signed HTTP POST request
         let client = &self.inner_client;
-        let response = client
-            .post(url)
-            .headers(headers)
-            .body(raw_request_body.unwrap_or_default())
-            .send()
-            .await?;
+        let body = raw_request_body.unwrap_or_default();
+        let response = client.post(url).headers(headers).body(body).send().await?;
 
         // Handle the response
         self.handler(response).await
@@ -212,12 +196,12 @@ impl Client {
     /// # Returns
     ///
     /// A `Result` containing the signed headers.
-    fn build_signed_headers<'str>(
+    fn build_signed_headers(
         &self,
         content_type: bool,
         signed: bool,
-        recv_window: u16,
-        request: Option<String>,
+        recv_window: u64,
+        request: Option<&str>,
     ) -> Result<HeaderMap, BybitError> {
         // Initialize the custom headers map
         let mut custom_headers = HeaderMap::new();
@@ -238,36 +222,27 @@ impl Client {
 
         if signed {
             // Insert the signature header
-            custom_headers.insert(
-                signature_header,
-                HeaderValue::from_str(&signature.to_owned())?,
-            );
+            custom_headers.insert(signature_header, HeaderValue::from_str(&signature)?);
             // Insert the API key header
-            custom_headers.insert(
-                api_key_header,
-                HeaderValue::from_str(&self.api_key.to_owned())?,
-            );
+            if let Some(ref key) = self.api_key {
+                custom_headers.insert(api_key_header, HeaderValue::from_str(key)?);
+            }
         }
         // Insert the timestamp header
-        custom_headers.insert(
-            timestamp_header,
-            HeaderValue::from_str(&timestamp.to_owned())?,
-        );
+        custom_headers.insert(timestamp_header, HeaderValue::from_str(&timestamp)?);
         // Insert the receive window header
-        custom_headers.insert(
-            recv_window_header,
-            HeaderValue::from_str(&window.to_owned())?,
-        );
+        custom_headers.insert(recv_window_header, HeaderValue::from_str(&window)?);
         // Insert the Content-Type header if required
         if content_type {
             custom_headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         }
         // Return the signed headers
-        Ok(custom_headers).map_err(BybitError::ReqError)
+        Ok(custom_headers)
     }
 
     fn mac_from_secret_key(&self) -> Result<Hmac<Sha256>, BybitError> {
-        Hmac::<Sha256>::new_from_slice(self.secret_key.as_bytes())
+        let secret = self.secret_key.as_deref().unwrap_or("");
+        Hmac::<Sha256>::new_from_slice(secret.as_bytes())
             .map_err(|e| BybitError::Base(format!("Failed to create Hmac, error: {:?}", e)))
     }
 
@@ -294,17 +269,18 @@ impl Client {
         &self,
         timestamp: &str,
         recv_window: &str,
-        request: Option<String>,
+        request: Option<&str>,
     ) -> Result<String, BybitError> {
         // Create a new HMAC SHA256 instance with the secret key
         let mut mac = self.mac_from_secret_key()?;
 
         // Create the sign message by concatenating the timestamp, API key, and receive window
-        let mut sign_message = format!("{}{}{}", timestamp, self.api_key, recv_window);
+        let api_key = self.api_key.as_deref().unwrap_or("");
+        let mut sign_message = format!("{}{}{}", timestamp, api_key, recv_window);
 
         // If a request body is provided, append it to the sign message
         if let Some(req) = request {
-            sign_message.push_str(&req);
+            sign_message.push_str(req);
         }
 
         // Update the MAC with the sign message
@@ -394,8 +370,7 @@ impl Client {
     /// * `endpoint` - The WebSocket endpoint to connect to.
     /// * `request_body` - An optional request body to send after authenticating.
     /// * `private` - A boolean indicating whether to send the authentication message.
-    /// * `alive_dur` - An optional duration in seconds to set the `alive` field of the
-    ///   authentication message to.
+    /// * `alive_dur` - An optional duration in minutes for the auth session lifetime.
     ///
     /// # Returns
     ///
@@ -408,135 +383,111 @@ impl Client {
         private: bool,
         alive_dur: Option<u16>,
     ) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, BybitError> {
-        // Construct the WebSocket URL
-        let unparsed_url = format!("{}{}", self.host, endpoint.as_ref()).to_string();
-        let url = WsUrl::parse(unparsed_url.as_str())?;
+        let url = WsUrl::parse(&format!("{}{}", self.host, endpoint.as_ref()))?;
 
         // Calculate the expiration time for the authentication message
-        let expiry_time = alive_dur.unwrap_or(9) as u64 * 1000 * 60;
-        let expires = get_timestamp() + expiry_time;
+        let expires = get_timestamp() + (alive_dur.unwrap_or(9) as u64 * 60_000);
 
-        // Calculate the signature for the authentication message
-        let mut mac = self.mac_from_secret_key()?;
-        mac.update(format!("GET/realtime{expires}").as_bytes());
-        let signature = hex_encode(mac.finalize().into_bytes());
+        // Sign the challenge string for the auth message
+        let signature = self.sign_auth_challenge(expires)?;
 
-        // Generate a random UUID for the request ID
         let uuid = generate_random_uid(5);
 
-        // Connect to the WebSocket endpoint
-        match connect_async(url.as_ref()).await {
-            // If the connection is successful, send the authentication message
-            Ok((mut ws_stream, _)) => {
-                let auth_msg = json!({
-                    "req_id": uuid,
-                    "op": "auth",
-                    "args": [self.api_key, expires, signature]
-                });
+        let (mut ws_stream, _) = connect_async(url.as_ref())
+            .await
+            .map_err(BybitError::Tungstenite)?;
 
-                if private {
-                    // Send the authentication message if `private` is true
-                    ws_stream
-                        .send(WsMessage::Text(auth_msg.to_string().into()))
-                        .await?;
-
-                    // Wait for authentication response with timeout
-                    let auth_response = tokio::time::timeout(
-                        Duration::from_secs(5),
-                        wait_for_auth_response(&mut ws_stream, endpoint),
-                    )
-                    .await
-                    .map_err(|_| BybitError::Base("Authentication timeout".to_string()))??;
-
-                    // Check if authentication was successful
-                    if auth_response.is_failure() {
-                        return Err(BybitError::Base(format!(
-                            "Authentication failed: {} (code: {:?})",
-                            auth_response.ret_msg(),
-                            auth_response.error_code()
-                        )));
-                    }
-
-                    trace!(
-                        "WebSocket authentication successful: {}",
-                        auth_response.conn_id()
-                    );
-                }
-
-                // Send the request body if it is not empty
-                let request = request_body.unwrap_or_default();
-                if !request.is_empty() {
-                    ws_stream.send(WsMessage::Text(request.into())).await?;
-                }
-                Ok(ws_stream)
-            }
-            // If the connection fails, return a BybitError
-            Err(err) => Err(BybitError::Tungstenite(err)),
+        if private {
+            self.send_auth(&mut ws_stream, uuid, expires, &signature)
+                .await?;
         }
+
+        // Send the request body if present and non-empty
+        if let Some(body) = &request_body {
+            if !body.is_empty() {
+                ws_stream.send(WsMessage::Text(body.clone().into())).await?;
+            }
+        }
+
+        Ok(ws_stream)
+    }
+
+    /// Builds the HMAC-SHA256 signature for the WebSocket auth challenge.
+    fn sign_auth_challenge(&self, expires: u64) -> Result<String, BybitError> {
+        let mut mac = self.mac_from_secret_key()?;
+        mac.update(format!("GET/realtime{expires}").as_bytes());
+        Ok(hex_encode(mac.finalize().into_bytes()))
+    }
+
+    /// Sends an authentication message over the WebSocket and waits for the response.
+    async fn send_auth(
+        &self,
+        ws_stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
+        uuid: String,
+        expires: u64,
+        signature: &str,
+    ) -> Result<(), BybitError> {
+        let api_key = self.api_key.as_deref().unwrap_or("");
+
+        let auth_msg = json!({
+            "req_id": uuid,
+            "op": "auth",
+            "args": [api_key, expires, signature]
+        });
+
+        ws_stream
+            .send(WsMessage::Text(auth_msg.to_string().into()))
+            .await?;
+
+        let auth_response =
+            tokio::time::timeout(Duration::from_secs(5), wait_for_auth_response(ws_stream))
+                .await
+                .map_err(|_| BybitError::Base("Authentication timeout".into()))??;
+
+        if auth_response.is_failure() {
+            return Err(BybitError::Base(format!(
+                "Authentication failed: {} (code: {:?})",
+                auth_response.ret_msg(),
+                auth_response.error_code()
+            )));
+        }
+
+        trace!(
+            "WebSocket authentication successful: {}",
+            auth_response.conn_id()
+        );
+
+        Ok(())
     }
 }
 
 /// Waits for and parses an authentication response from a WebSocket stream.
-///
-/// This function reads messages from the WebSocket stream until it receives
-/// an authentication response, then parses it into an `AuthResponse`.
 async fn wait_for_auth_response(
     ws_stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
-    endpoint: WebsocketAPI,
 ) -> Result<AuthResponse, BybitError> {
     use futures::StreamExt;
 
     loop {
         match ws_stream.next().await {
             Some(Ok(WsMessage::Text(msg))) => {
-                // Try to parse as AuthResponse
-                if let Ok(auth_response) = serde_json::from_str::<AuthResponse>(&msg) {
-                    return Ok(auth_response);
-                }
-
-                // If it's not an auth response, check if it's a subscription response
-                // (for public streams that don't require auth but send subscription confirmation)
-                let value: Value = serde_json::from_str(&msg)
-                    .map_err(|e| BybitError::Base(format!("Failed to parse message: {}", e)))?;
-
-                // Check if this is a subscription response for public streams
-                if let Some(op) = value.get("op").and_then(|v| v.as_str()) {
-                    if op == "subscribe" {
-                        // This is a subscription confirmation, not an auth response
-                        // For public streams, this is expected
-                        if endpoint == WebsocketAPI::TradeStream {
-                            // Trade stream should send auth response, not subscribe
-                            continue;
-                        }
-                        // For public non-trade streams, create a success response
-                        let conn_id = value
-                            .get("conn_id")
-                            .or_else(|| value.get("connId"))
-                            .and_then(|v| v.as_str())
-                            .unwrap_or("unknown");
-
-                        return Ok(AuthResponse::PrivateAuth(PrivateAuthData::new(
-                            true,
-                            "subscription confirmed",
-                            conn_id,
-                            None,
-                        )));
+                match serde_json::from_str::<AuthResponse>(&msg) {
+                    Ok(auth_response) => return Ok(auth_response),
+                    Err(_) => {
+                        // Not an auth response — it might be a subscription confirmation
+                        // that arrived before the auth response. Keep waiting.
+                        trace!("Ignoring non-auth message while waiting for auth: {msg}");
+                        continue;
                     }
                 }
-
-                // If we get here, it's not an auth or subscribe response
-                // Continue waiting
             }
             Some(Ok(_)) => {
                 // Binary or other non-text message, ignore
                 continue;
             }
-            Some(Err(e)) => {
-                return Err(BybitError::Tungstenite(e));
-            }
+            Some(Err(e)) => return Err(BybitError::Tungstenite(e)),
             None => {
                 return Err(BybitError::Base(
-                    "WebSocket stream closed while waiting for authentication".to_string(),
+                    "WebSocket stream closed while waiting for authentication".into(),
                 ));
             }
         }

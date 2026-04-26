@@ -4,7 +4,7 @@ use std::borrow::Cow;
 pub struct Config {
     pub rest_api_endpoint: Cow<'static, str>,
     pub ws_endpoint: Cow<'static, str>,
-    pub recv_window: u16,
+    pub recv_window: u64,
 }
 
 impl Config {
@@ -14,7 +14,7 @@ impl Config {
     pub fn new(
         rest_api_endpoint: impl AsRef<str>,
         ws_endpoint: impl AsRef<str>,
-        recv_window: impl Into<u16>,
+        recv_window: impl Into<u64>,
     ) -> Self {
         Self {
             rest_api_endpoint: Cow::Owned(rest_api_endpoint.as_ref().to_string()),
@@ -39,7 +39,7 @@ impl Config {
         }
     }
 
-    pub fn set_recv_window(self, recv_window: u16) -> Self {
+    pub fn set_recv_window(self, recv_window: u64) -> Self {
         Self {
             recv_window,
             ..self

@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone)]
 pub struct PositionManager {
     pub client: Client,
-    pub recv_window: u16,
+    pub recv_window: u64,
 }
 
 impl PositionManager {
