@@ -1,24 +1,15 @@
 use crate::prelude::*;
+use crate::ws::client::WsClient;
+use crate::ws::{send_or_err, PING_INTERVAL};
 
 use futures::{SinkExt, StreamExt};
 use log::trace;
 use std::collections::HashMap;
 use std::time::Instant;
-use tokio::net::TcpStream;
+
 use tokio::sync::mpsc;
-use tokio::time::Duration;
-use tokio_tungstenite::WebSocketStream;
-use tokio_tungstenite::{tungstenite::Message as WsMessage, MaybeTlsStream};
 
-/// Interval at which the WebSocket event loop sends a ping to keep the connection alive.
-const PING_INTERVAL: Duration = Duration::from_secs(30);
-
-/// Helper to send an item through an unbounded channel, mapping the error to `BybitError`.
-fn send_or_err<T>(sender: &mpsc::UnboundedSender<T>, item: T) -> Result<(), BybitError> {
-    sender.send(item).map_err(|e| BybitError::ChannelSendError {
-        underlying: e.to_string(),
-    })
-}
+use tokio_tungstenite::tungstenite::Message as WsMessage;
 
 #[derive(Clone)]
 pub struct Stream {
@@ -31,7 +22,7 @@ impl Stream {
     /// # Returns
     ///
     /// Returns a `Result` containing a `String` with the response message if successful,
-
+    ///
     /// * `private` is set to `true` if the request is for a private endpoint
     /// or a `BybitError` if an error occurs.
     pub async fn ws_ping(&self, private: bool) -> Result<(), BybitError> {
@@ -83,7 +74,8 @@ impl Stream {
             .client
             .wss_connect(WebsocketAPI::Private, Some(request), true, Some(10))
             .await?;
-        Self::event_loop(response, handler, None).await?;
+        let mut ws_client = WsClient::new(response);
+        Self::event_loop(&mut ws_client, handler, None).await?;
         Ok(())
     }
 
@@ -141,7 +133,8 @@ impl Stream {
             .client
             .wss_connect(WebsocketAPI::Private, None, true, Some(10))
             .await?;
-        Self::event_loop(response, handler, Some(cmd_receiver)).await?;
+        let mut ws_client = WsClient::new(response);
+        Self::event_loop(&mut ws_client, handler, Some(cmd_receiver)).await?;
         Ok(())
     }
 
@@ -160,7 +153,8 @@ impl Stream {
             .client
             .wss_connect(endpoint, Some(request), false, None)
             .await?;
-        Self::event_loop(response, handler, None).await?;
+        let mut ws_client = WsClient::new(response);
+        Self::event_loop(&mut ws_client, handler, None).await?;
         Ok(())
     }
 
@@ -218,7 +212,8 @@ impl Stream {
     {
         let endpoint = category.public_ws_endpoint();
         let response = self.client.wss_connect(endpoint, None, false, None).await?;
-        Self::event_loop(response, handler, Some(cmd_receiver)).await?;
+        let mut ws_client = WsClient::new(response);
+        Self::event_loop(&mut ws_client, handler, Some(cmd_receiver)).await?;
 
         Ok(())
     }
@@ -295,6 +290,27 @@ impl Stream {
         Ok(build_json_request(&parameters))
     }
 
+    /// Generic helper that eliminates boilerplate for channel-based subscriptions.
+    async fn subscribe_channel<T, M>(
+        &self,
+        request: Subscription<'_>,
+        category: Category,
+        sender: mpsc::UnboundedSender<T>,
+        mapper: M,
+    ) -> Result<(), BybitError>
+    where
+        T: Send + 'static,
+        M: Fn(WebsocketEvents) -> Option<T> + Send + 'static,
+    {
+        self.ws_subscribe(request, category, move |event| {
+            if let Some(data) = mapper(event) {
+                send_or_err(&sender, data)?;
+            }
+            Ok(())
+        })
+        .await
+    }
+
     /// Subscribes to the specified order book updates and handles the order book events
     ///
     /// # Arguments
@@ -319,11 +335,12 @@ impl Stream {
             .map(|(num, sym)| format!("orderbook.{}.{}", num, sym.to_uppercase()))
             .collect();
         let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
-        self.ws_subscribe(request, category, move |event| {
+        self.subscribe_channel(request, category, sender, |event| {
             if let WebsocketEvents::OrderBookEvent(order_book) = event {
-                send_or_err(&sender, order_book)?;
+                Some(order_book)
+            } else {
+                None
             }
-            Ok(())
         })
         .await
     }
@@ -375,11 +392,12 @@ impl Stream {
             .map(|sym| format!("orderbook.rpi.{}", sym.to_uppercase()))
             .collect();
         let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
-        self.ws_subscribe(request, category, move |event| {
+        self.subscribe_channel(request, category, sender, |event| {
             if let WebsocketEvents::RPIOrderBookEvent(rpi_order_book) = event {
-                send_or_err(&sender, rpi_order_book)?;
+                Some(rpi_order_book)
+            } else {
+                None
             }
-            Ok(())
         })
         .await
     }
@@ -591,17 +609,16 @@ impl Stream {
             .collect();
         let request = Subscription::new("subscribe", arr.iter().map(String::as_str).collect());
 
-        let handler = move |event| {
+        self.subscribe_channel(request, category, sender, move |event| {
             if let WebsocketEvents::TickerEvent(ticker) = event {
-                if let Some(mapped) = filter_map(ticker) {
-                    send_or_err(&sender, mapped)?;
-                }
+                filter_map(ticker)
+            } else {
+                None
             }
-            Ok(())
-        };
-
-        self.ws_subscribe(request, category, handler).await
+        })
+        .await
     }
+
     pub async fn ws_liquidations(
         &self,
         subs: Vec<&str>,
@@ -614,15 +631,16 @@ impl Stream {
             .collect();
         let request = Subscription::new("subscribe", arr.iter().map(String::as_str).collect());
 
-        let handler = move |event| {
+        self.subscribe_channel(request, category, sender, |event| {
             if let WebsocketEvents::LiquidationEvent(liquidation) = event {
-                send_or_err(&sender, liquidation.data)?;
+                Some(liquidation.data)
+            } else {
+                None
             }
-            Ok(())
-        };
-
-        self.ws_subscribe(request, category, handler).await
+        })
+        .await
     }
+
     pub async fn ws_klines(
         &self,
         subs: Vec<(&str, &str)>,
@@ -634,11 +652,12 @@ impl Stream {
             .map(|(interval, sym)| format!("kline.{}.{}", interval, sym.to_uppercase()))
             .collect();
         let request = Subscription::new("subscribe", arr.iter().map(AsRef::as_ref).collect());
-        self.ws_subscribe(request, category, move |event| {
+        self.subscribe_channel(request, category, sender, |event| {
             if let WebsocketEvents::KlineEvent(kline) = event {
-                send_or_err(&sender, kline)?;
+                Some(kline)
+            } else {
+                None
             }
-            Ok(())
         })
         .await
     }
@@ -816,7 +835,8 @@ impl Stream {
             Ok(())
         };
 
-        Self::event_loop(response, handler, None).await?;
+        let mut ws_client = WsClient::new(response);
+        Self::event_loop(&mut ws_client, handler, None).await?;
         Ok(())
     }
 
@@ -833,13 +853,14 @@ impl Stream {
             .client
             .wss_connect(WebsocketAPI::TradeStream, None, true, Some(10))
             .await?;
-        Self::event_loop(response, handler, Some(req)).await?;
+        let mut ws_client = WsClient::new(response);
+        Self::event_loop(&mut ws_client, handler, Some(req)).await?;
 
         Ok(())
     }
 
     pub async fn event_loop<'a, H>(
-        mut stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
+        client: &mut WsClient,
         mut handler: H,
         mut request_sender: Option<mpsc::UnboundedReceiver<RequestType<'_>>>,
     ) -> Result<(), BybitError>
@@ -848,10 +869,16 @@ impl Stream {
     {
         let mut interval = Instant::now();
         loop {
-            let msg = stream.next().await;
+            let msg = client.stream().next().await;
             match msg {
                 Some(Ok(WsMessage::Text(msg))) => {
                     handler.handle_msg(&msg)?;
+                }
+                Some(Ok(WsMessage::Ping(data))) => {
+                    let _ = client.stream().send(WsMessage::Pong(data)).await;
+                }
+                Some(Ok(WsMessage::Pong(_))) => {
+                    // Protocol-level pong received, no action needed
                 }
                 Some(Err(e)) => {
                     return Err(BybitError::from(e.to_string()));
@@ -866,14 +893,16 @@ impl Stream {
                     Ok(v) => match v {
                         RequestType::Subscribe(sub) | RequestType::Unsubscribe(sub) => {
                             let req = Self::build_subscription(sub);
-                            let _ = stream
+                            let _ = client
+                                .stream()
                                 .send(WsMessage::Text(req.into()))
                                 .await
                                 .map_err(BybitError::from);
                         }
                         _ => {
                             if let Ok(req) = Self::build_trade_subscription(v, Some(3000)) {
-                                let _ = stream
+                                let _ = client
+                                    .stream()
                                     .send(WsMessage::Text(req.into()))
                                     .await
                                     .map_err(BybitError::from);
@@ -891,13 +920,19 @@ impl Stream {
                 let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
                 parameters.insert("op".into(), "ping".into());
                 let request = build_json_request(&parameters);
-                let _ = stream
+                let _ = client
+                    .stream()
                     .send(WsMessage::Text(request.into()))
                     .await
                     .map_err(BybitError::from);
                 interval = Instant::now();
             }
         }
+    }
+
+    /// Gracefully disconnects the WebSocket client.
+    pub async fn disconnect(&self, client: &mut WsClient) -> Result<(), BybitError> {
+        client.disconnect().await
     }
 }
 
