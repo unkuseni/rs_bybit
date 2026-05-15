@@ -67,6 +67,7 @@ impl<'a> MoveHistoryRequest<'a> {
     /// Creates a default MoveHistory request.
     ///
     /// Returns a request with all fields unset. Suitable for broad queries but should be customized for specific analysis needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> MoveHistoryRequest<'a> {
         MoveHistoryRequest::new(None, None, None, None, None, None, None)
     }

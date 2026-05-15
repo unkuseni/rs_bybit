@@ -32,6 +32,7 @@ impl<'a> RPIOrderbookRequest<'a> {
     ///
     /// Returns a request with `symbol` set to `"BTCUSDT"`, no category, and `limit` set to 50.
     /// Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> RPIOrderbookRequest<'a> {
         RPIOrderbookRequest::new("BTCUSDT", None, 50)
     }

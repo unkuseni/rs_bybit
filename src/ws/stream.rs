@@ -22,9 +22,9 @@ impl Stream {
     /// # Returns
     ///
     /// Returns a `Result` containing a `String` with the response message if successful,
+    /// or a `BybitError` if an error occurs.
     ///
     /// * `private` is set to `true` if the request is for a private endpoint
-    /// or a `BybitError` if an error occurs.
     pub async fn ws_ping(&self, private: bool) -> Result<(), BybitError> {
         let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
         parameters.insert("req_id".into(), generate_random_uid(8).into());
@@ -61,7 +61,7 @@ impl Stream {
         Ok(())
     }
 
-    pub async fn ws_priv_subscribe<'b, F>(
+    pub async fn ws_priv_subscribe<F>(
         &self,
         req: Subscription<'_>,
         handler: F,
@@ -138,7 +138,7 @@ impl Stream {
         Ok(())
     }
 
-    pub async fn ws_subscribe<'b, F>(
+    pub async fn ws_subscribe<F>(
         &self,
         req: Subscription<'_>,
         category: Category,
@@ -611,7 +611,7 @@ impl Stream {
 
         self.subscribe_channel(request, category, sender, move |event| {
             if let WebsocketEvents::TickerEvent(ticker) = event {
-                filter_map(ticker)
+                filter_map(*ticker)
             } else {
                 None
             }
@@ -859,7 +859,7 @@ impl Stream {
         Ok(())
     }
 
-    pub async fn event_loop<'a, H>(
+    pub async fn event_loop<H>(
         client: &mut WsClient,
         mut handler: H,
         mut request_sender: Option<mpsc::UnboundedReceiver<RequestType<'_>>>,

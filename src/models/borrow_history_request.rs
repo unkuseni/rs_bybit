@@ -46,6 +46,7 @@ impl<'a> BorrowHistoryRequest<'a> {
     /// Creates a default BorrowHistory request.
     ///
     /// Returns a request with all fields unset. Suitable for broad queries but should be customized for specific analysis needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> BorrowHistoryRequest<'a> {
         BorrowHistoryRequest::new(None, None, None, None)
     }

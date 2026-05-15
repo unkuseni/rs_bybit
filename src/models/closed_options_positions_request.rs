@@ -110,6 +110,7 @@ impl<'a> ClosedOptionsPositionsRequest<'a> {
     /// Returns a request with `category` set to `Option`, no symbol filter,
     /// no time range (returns last 1 day by default), limit set to `50`, and no cursor.
     /// Suitable for testing but should be customized for production analysis.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> ClosedOptionsPositionsRequest<'a> {
         ClosedOptionsPositionsRequest::new(Category::Option, None, None, None, Some(50), None)
     }

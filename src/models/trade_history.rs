@@ -165,6 +165,7 @@ impl<'a> TradeHistoryRequest<'a> {
     /// Creates a default TradeHistory request.
     ///
     /// Returns a request with `category` set to `Linear` and all other fields unset. Suitable for broad queries but should be customized for specific analysis needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> TradeHistoryRequest<'a> {
         TradeHistoryRequest::new(
             Category::Linear,
@@ -181,6 +182,7 @@ impl<'a> TradeHistoryRequest<'a> {
     /// Constructs a new TradeHistory request with specified parameters.
     ///
     /// Allows full customization. Bots should use this to specify the exact symbol, time range, and filters to align with their analysis requirements.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         category: Category,
         symbol: Option<&'a str>,

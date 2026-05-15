@@ -56,7 +56,7 @@ pub enum Action<'a> {
 }
 
 impl Trader {
-    pub async fn place_custom_order<'b>(
+    pub async fn place_custom_order(
         &self,
         req: OrderRequest<'_>,
     ) -> Result<OrderResponse, BybitError> {
@@ -120,7 +120,7 @@ impl Trader {
         Ok(response)
     }
 
-    pub async fn amend_order<'b>(
+    pub async fn amend_order(
         &self,
         req: AmendOrderRequest<'_>,
     ) -> Result<AmendOrderResponse, BybitError> {
@@ -133,7 +133,7 @@ impl Trader {
             .await?;
         Ok(response)
     }
-    pub async fn cancel_order<'b>(
+    pub async fn cancel_order(
         &self,
         req: CancelOrderRequest<'_>,
     ) -> Result<CancelOrderResponse, BybitError> {
@@ -146,7 +146,7 @@ impl Trader {
             .await?;
         Ok(response)
     }
-    pub async fn get_open_orders<'b>(
+    pub async fn get_open_orders(
         &self,
         req: OpenOrdersRequest<'_>,
     ) -> Result<OpenOrdersResponse, BybitError> {
@@ -191,7 +191,7 @@ impl Trader {
 
         Ok(response)
     }
-    pub async fn cancel_all_orders<'b>(
+    pub async fn cancel_all_orders(
         &self,
         req: CancelAllRequest<'_>,
     ) -> Result<CancelAllResponse, BybitError> {
@@ -231,7 +231,7 @@ impl Trader {
     /// A `Result` wrapping `OrderHistory` which contains the historical orders' data.
     /// If the operation fails, it returns an error.
     ///
-    pub async fn get_order_history<'b>(
+    pub async fn get_order_history(
         &self,
         req: OrderHistoryRequest<'_>,
     ) -> Result<OrderHistoryResponse, BybitError> {
@@ -275,7 +275,7 @@ impl Trader {
     /// # Returns
     ///
     /// Returns a `Result<TradeHistoryResponse, BybitError>` containing the trade history data if the query is successful, or an error detailing the problem if the query fails.
-    pub async fn get_trade_history<'b>(
+    pub async fn get_trade_history(
         &self,
         req: TradeHistoryRequest<'_>,
     ) -> Result<TradeHistoryResponse, BybitError> {
@@ -343,7 +343,7 @@ impl Trader {
     /// # Returns
     ///
     /// Returns a `Result` containing a `BatchPlaceResponse` on success or a `BybitError` on failure.
-    pub async fn batch_place_order<'b>(
+    pub async fn batch_place_order(
         &self,
         req: BatchPlaceRequest<'_>,
     ) -> Result<BatchPlaceResponse, BybitError> {
@@ -407,7 +407,7 @@ impl Trader {
     /// # Returns
     ///
     /// A `Result` containing a `BatchAmendResponse` on success or a `BybitError` on failure.
-    pub async fn batch_amend_order<'b>(
+    pub async fn batch_amend_order(
         &self,
         req: BatchAmendRequest<'_>,
     ) -> Result<BatchAmendResponse, BybitError> {
@@ -466,13 +466,13 @@ impl Trader {
     ///
     /// This function will send a signed POST request to the Bybit API to cancel
     /// a batch of orders. The request should contain the category, symbol, order_id,
-
+    ///
     /// and order_link_id for each order to be cancelled.
     ///
     /// # Arguments
     ///
     /// * `req` - A `BatchCancelRequest` containing the details of the orders to
-    /// be cancelled.
+    ///   be cancelled.
     ///
     /// # Returns
     ///
@@ -482,7 +482,7 @@ impl Trader {
     ///
     /// Returns an error if the request fails or if the Bybit API returns an
     /// error response.
-    pub async fn batch_cancel_order<'b>(
+    pub async fn batch_cancel_order(
         &self,
         req: BatchCancelRequest<'_>,
     ) -> Result<BatchCancelResponse, BybitError> {
@@ -535,7 +535,7 @@ impl Trader {
     /// - Only supports `category=spot`
     /// - During periods of extreme market volatility, this interface may experience
     ///   increased latency or temporary delays in data delivery
-    pub async fn get_borrow_quota_spot<'b>(
+    pub async fn get_borrow_quota_spot(
         &self,
         req: BorrowQuotaRequest<'_>,
     ) -> Result<BorrowQuotaResponse, BybitError> {
@@ -579,10 +579,7 @@ impl Trader {
     /// - Your private websocket connection **must** subscribe to "dcp" topic to trigger DCP successfully
     /// - Valid time window range: 3 to 300 seconds
     /// - Default product is "OPTIONS" if not specified
-    pub async fn set_dcp_options<'b>(
-        &self,
-        req: DcpRequest<'_>,
-    ) -> Result<DcpResponse, BybitError> {
+    pub async fn set_dcp_options(&self, req: DcpRequest<'_>) -> Result<DcpResponse, BybitError> {
         // Validate the request parameters
         if let Err(e) = req.validate() {
             return Err(BybitError::from(e));
@@ -631,7 +628,7 @@ impl Trader {
     /// - Isolated margin mode is not supported
     /// - Conditional orders are not supported
     /// - For `inverse` category, Cross Margin mode is not supported
-    pub async fn pre_check_order<'b>(
+    pub async fn pre_check_order(
         &self,
         req: OrderRequest<'_>,
     ) -> Result<PreCheckOrderResponse, BybitError> {
@@ -646,7 +643,7 @@ impl Trader {
         Ok(response)
     }
 
-    pub fn build_orders<'b>(action: Action<'_>) -> BTreeMap<String, Value> {
+    pub fn build_orders(action: Action<'_>) -> BTreeMap<String, Value> {
         let mut parameters: BTreeMap<String, Value> = BTreeMap::new();
         match action {
             Action::Order(req, batch) => {
@@ -821,7 +818,7 @@ impl Trader {
     }
 }
 
-pub fn build_ws_orders<'a>(orders: RequestType) -> Value {
+pub fn build_ws_orders(orders: RequestType) -> Value {
     let mut order_array = Vec::new();
     match orders {
         RequestType::Create(req) => {

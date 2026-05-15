@@ -18,6 +18,7 @@ pub struct RiskLimitRequest<'a> {
 impl<'a> RiskLimitRequest<'a> {
     /// Creates a default request for the Linear category.
     /// Simplifies initialization for bots targeting USDT-margined perpetuals.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> RiskLimitRequest<'a> {
         RiskLimitRequest::new(Category::Linear, None)
     }

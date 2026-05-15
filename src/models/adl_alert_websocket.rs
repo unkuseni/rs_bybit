@@ -70,6 +70,7 @@ pub struct ADLAlertWebsocketItem {
 
 impl ADLAlertWebsocketItem {
     /// Constructs a new ADLAlertWebsocketItem with specified parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         coin: &str,
         symbol: &str,

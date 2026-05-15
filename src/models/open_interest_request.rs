@@ -40,6 +40,7 @@ impl<'a> OpenInterestRequest<'a> {
     /// Creates a default OpenInterest request.
     ///
     /// Returns a request with `category` set to `Linear`, `symbol` set to `"BTCUSDT"`, and `interval` set to `"1h"`. Suitable for testing but should be customized for production to match specific trading needs and analysis timeframes.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> OpenInterestRequest<'a> {
         OpenInterestRequest::new(Category::Linear, "BTCUSDT", "1h", None, None, None)
     }

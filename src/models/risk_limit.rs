@@ -67,6 +67,7 @@ impl<'a> SetRiskLimit<'a> {
     /// Creates a default SetRiskLimit request.
     ///
     /// Returns a request with `category` set to `Linear`, `symbol` set to `"BTCUSDT"`, `risk_id` set to `1`, and no position index. Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> SetRiskLimit<'a> {
         SetRiskLimit::new(Category::Linear, "BTCUSDT", 1, None)
     }

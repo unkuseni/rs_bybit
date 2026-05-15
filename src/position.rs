@@ -33,7 +33,7 @@ impl PositionManager {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn get_info<'b>(&self, req: PositionRequest<'_>) -> Result<InfoResponse, BybitError> {
+    pub async fn get_info(&self, req: PositionRequest<'_>) -> Result<InfoResponse, BybitError> {
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
         parameters.insert("category".into(), req.category.as_str().into());
         if let Some(v) = req.symbol {
@@ -69,7 +69,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// A result containing the leverage response.
-    pub async fn set_leverage<'b>(
+    pub async fn set_leverage(
         &self,
         req: LeverageRequest<'_>,
     ) -> Result<LeverageResponse, BybitError> {
@@ -99,7 +99,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// * Result<ChangeMarginResponse> - The result of setting the margin mode.
-    pub async fn set_margin_mode<'b>(
+    pub async fn set_margin_mode(
         &self,
         req: ChangeMarginRequest<'_>,
     ) -> Result<ChangeMarginResponse, BybitError> {
@@ -128,7 +128,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// * Result<MarginModeResponse> - The result of setting the position mode.
-    pub async fn set_position_mode<'b>(
+    pub async fn set_position_mode(
         &self,
         req: MarginModeRequest<'_>,
     ) -> Result<MarginModeResponse, BybitError> {
@@ -162,7 +162,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// * Result<SetRiskLimitResult> - The result of setting the risk limit.
-    pub async fn set_risk_limit<'b>(
+    pub async fn set_risk_limit(
         &self,
         req: SetRiskLimit<'_>,
     ) -> Result<SetRiskLimitResponse, BybitError> {
@@ -194,7 +194,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// * Result<TradingStopResponse> - The result of setting the trading stop.
-    pub async fn set_trading_stop<'b>(
+    pub async fn set_trading_stop(
         &self,
         req: TradingStopRequest<'_>,
     ) -> Result<TradingStopResponse, BybitError> {
@@ -267,7 +267,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// A result containing the AddMarginResponse.
-    pub async fn set_add_margin<'b>(
+    pub async fn set_add_margin(
         &self,
         req: AddMarginRequest<'_>,
     ) -> Result<AddMarginResponse, BybitError> {
@@ -316,7 +316,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// * Result<AddReduceMarginResponse> - The result of setting the auto add margin.
-    pub async fn add_or_reduce_margin<'b>(
+    pub async fn add_or_reduce_margin(
         &self,
         req: AddReduceMarginRequest<'_>,
     ) -> Result<AddReduceMarginResponse, BybitError> {
@@ -352,7 +352,7 @@ impl PositionManager {
         Ok(response)
     }
 
-    pub async fn get_closed_pnl<'b>(
+    pub async fn get_closed_pnl(
         &self,
         req: ClosedPnlRequest<'_>,
     ) -> Result<ClosedPnlResponse, BybitError> {
@@ -396,7 +396,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// A result containing the closed options positions response.
-    pub async fn get_closed_options_positions<'b>(
+    pub async fn get_closed_options_positions(
         &self,
         req: ClosedOptionsPositionsRequest<'_>,
     ) -> Result<ClosedOptionsPositionsResult, BybitError> {
@@ -456,7 +456,7 @@ impl PositionManager {
     /// After the user actively adjusts the risk level, this interface is called to try to
     /// calculate the adjusted risk level. If the call passes (retCode=0), the system will
     /// remove the position reduceOnly mark.
-    pub async fn confirm_pending_mmr<'b>(
+    pub async fn confirm_pending_mmr(
         &self,
         req: ConfirmPendingMmrRequest<'_>,
     ) -> Result<ConfirmPendingMmrResponse, BybitError> {
@@ -490,7 +490,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// A result containing the response.
-    pub async fn move_position<'b>(
+    pub async fn move_position(
         &self,
         req: MovePositionRequest<'_>,
     ) -> Result<MovePositionResponse, BybitError> {
@@ -522,7 +522,7 @@ impl PositionManager {
     /// # Returns
     ///
     /// A result containing the response.
-    pub async fn move_position_history<'b>(
+    pub async fn move_position_history(
         &self,
         req: MoveHistoryRequest<'_>,
     ) -> Result<MoveHistoryResponse, BybitError> {

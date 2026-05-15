@@ -81,6 +81,7 @@ impl<'a> OrderHistoryRequest<'a> {
     ///
     /// Initializes a query with common defaults. Bots should modify fields to target
     /// specific historical orders in perpetual futures.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self {
             category: Category::Linear,
@@ -100,6 +101,7 @@ impl<'a> OrderHistoryRequest<'a> {
     ///
     /// Allows bots to tailor the query fully. Ensure parameters are valid to avoid
     /// API errors in perpetual futures trading.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         category: Category,
         symbol: Option<&'a str>,

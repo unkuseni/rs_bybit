@@ -35,6 +35,7 @@ impl<'a> OrderbookRequest<'a> {
     ///
     /// Returns a request with `symbol` set to `"BTCUSDT"` and `category` set to `Linear`.
     /// Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> OrderbookRequest<'a> {
         OrderbookRequest::new("BTCUSDT", Category::Linear, None)
     }

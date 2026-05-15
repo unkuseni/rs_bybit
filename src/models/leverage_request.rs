@@ -87,6 +87,7 @@ impl<'a> LeverageRequest<'a> {
     ///
     /// Returns a request with `category` set to `Linear`, `symbol` set to `"BTCUSDT"`, and both `buy_leverage` and `sell_leverage` set to `"10"`.
     /// Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> LeverageRequest<'a> {
         LeverageRequest::new_symmetric(Category::Linear, "BTCUSDT", "10")
     }

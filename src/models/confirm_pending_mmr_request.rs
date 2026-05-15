@@ -60,6 +60,7 @@ impl<'a> ConfirmPendingMmrRequest<'a> {
     /// Returns a request with `category` set to `Linear` and `symbol` set to `"BTCUSDT"`.
     /// Suitable for testing but should be customized for production to match the actual
     /// reduce-only position.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> ConfirmPendingMmrRequest<'a> {
         ConfirmPendingMmrRequest::new(Category::Linear, "BTCUSDT")
     }

@@ -88,7 +88,7 @@ impl AccountManager {
     /// # Returns
     ///
     /// A result containing the borrow history response or an error.
-    pub async fn get_borrow_history<'b>(
+    pub async fn get_borrow_history(
         &self,
         req: BorrowHistoryRequest<'_>,
     ) -> Result<BorrowHistoryResponse, BybitError> {
@@ -353,7 +353,7 @@ impl AccountManager {
     /// # Returns
     ///
     /// A result containing the transaction log response or an error.
-    pub async fn get_transaction_log<'b>(
+    pub async fn get_transaction_log(
         &self,
         req: TransactionLogRequest<'_>,
     ) -> Result<TransactionLogResponse, BybitError> {

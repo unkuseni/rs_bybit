@@ -70,6 +70,7 @@ impl<'a> OpenOrdersRequest<'a> {
     ///
     /// Initializes a query with common defaults. Bots should modify fields as needed
     /// to target specific orders in perpetual futures.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self {
             category: Category::Linear,
@@ -88,6 +89,7 @@ impl<'a> OpenOrdersRequest<'a> {
     /// Allows bots to tailor the query fully. Ensure parameters are valid to avoid
     /// API errors, and set `open_only` within the allowed range (0–2) for perpetual
     /// futures trading.
+    #[allow(clippy::too_many_arguments)]
     pub fn custom(
         category: Category,
         symbol: &'a str,

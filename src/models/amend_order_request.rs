@@ -121,6 +121,7 @@ impl<'a> AmendOrderRequest<'a> {
     ///
     /// Initializes an amendment request with common defaults. Bots should modify
     /// necessary fields before submission to align with the target order’s attributes.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self {
             category: Category::Linear,
@@ -146,6 +147,7 @@ impl<'a> AmendOrderRequest<'a> {
     /// Allows bots to tailor an amendment request fully. Ensure all parameters are valid
     /// and consistent with the original order to avoid API errors in perpetual futures
     /// trading.
+    #[allow(clippy::too_many_arguments)]
     pub fn custom(
         category: Category,
         symbol: &'a str,

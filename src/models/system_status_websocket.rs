@@ -49,6 +49,7 @@ pub struct SystemStatusWebsocketItem {
 
 impl SystemStatusWebsocketItem {
     /// Constructs a new SystemStatusWebsocketItem with specified parameters
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: &str,
         title: &str,

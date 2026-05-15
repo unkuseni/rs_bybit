@@ -260,13 +260,9 @@ impl SpotTicker {
     /// Returns the symbol's base currency (first part of symbol).
     pub fn base_currency(&self) -> Option<&str> {
         // Simple heuristic: split at "USDT", "USDC", "BTC", etc.
-        if self.symbol.ends_with("USDT") {
+        if self.symbol.ends_with("USDT") || self.symbol.ends_with("USDC") {
             Some(&self.symbol[..self.symbol.len() - 4])
-        } else if self.symbol.ends_with("USDC") {
-            Some(&self.symbol[..self.symbol.len() - 4])
-        } else if self.symbol.ends_with("BTC") {
-            Some(&self.symbol[..self.symbol.len() - 3])
-        } else if self.symbol.ends_with("ETH") {
+        } else if self.symbol.ends_with("BTC") || self.symbol.ends_with("ETH") {
             Some(&self.symbol[..self.symbol.len() - 3])
         } else {
             None

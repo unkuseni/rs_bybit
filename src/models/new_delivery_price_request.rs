@@ -38,6 +38,7 @@ impl<'a> NewDeliveryPriceRequest<'a> {
     /// Returns a request with `category` set to `Option`, `base_coin` set to `"BTC"`,
     /// and no settle coin (defaults to USDT).
     /// Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> NewDeliveryPriceRequest<'a> {
         NewDeliveryPriceRequest::new(Category::Option, "BTC", None)
     }

@@ -46,6 +46,7 @@ impl<'a> MarginModeRequest<'a> {
     /// Creates a default MarginMode request.
     ///
     /// Returns a request with `category` set to `Linear`, `mode` set to `1` (isolated margin), and no symbol or coin specified. Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> MarginModeRequest<'a> {
         MarginModeRequest::new(Category::Linear, 1, None, None)
     }

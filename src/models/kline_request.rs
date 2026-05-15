@@ -64,6 +64,7 @@ impl Interval {
     /// Parses a string into an Interval enum.
     ///
     /// Returns `Some(Interval)` if the string is a valid interval, `None` otherwise.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "1" | "1m" => Some(Interval::M1),

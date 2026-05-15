@@ -24,6 +24,7 @@ impl<'a> FeeGroupInfoRequest<'a> {
     ///
     /// Returns a `FeeGroupInfoRequest` with `product_type` set to `"contract"` and no group ID filter.
     /// This is the standard request for getting all fee group information for contracts.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> FeeGroupInfoRequest<'a> {
         FeeGroupInfoRequest::new("contract", None)
     }

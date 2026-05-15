@@ -30,6 +30,7 @@ impl<'a> RecentTradesRequest<'a> {
     /// Creates a default RecentTrades request.
     ///
     /// Returns a request with `category` set to `Linear` and `symbol` set to `"BTCUSDT"`. Suitable for quick testing or prototyping but should be customized for production to match the specific perpetual futures contract and analysis needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> RecentTradesRequest<'a> {
         RecentTradesRequest::new(Category::Linear, Some("BTCUSDT"), None, None)
     }

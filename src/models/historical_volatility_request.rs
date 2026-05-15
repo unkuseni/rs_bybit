@@ -38,6 +38,7 @@ impl<'a> HistoricalVolatilityRequest<'a> {
     /// Creates a default request with BTC as the base coin.
     /// Useful for quick initialization in trading bots, but developers should override fields as
     /// needed for specific strategies.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> HistoricalVolatilityRequest<'a> {
         HistoricalVolatilityRequest::new(Some("BTC"), None, None, None)
     }

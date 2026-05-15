@@ -71,7 +71,7 @@ impl MarketData {
     /// - Request parameters are invalid (e.g., limit out of range)
     /// - API returns an error response
     /// - Network or parsing errors occur
-    pub async fn get_klines<'b>(&self, req: KlineRequest<'_>) -> Result<KlineResponse, BybitError> {
+    pub async fn get_klines(&self, req: KlineRequest<'_>) -> Result<KlineResponse, BybitError> {
         // Validate request parameters
         req.validate().map_err(BybitError::Base)?;
 
@@ -174,7 +174,7 @@ impl MarketData {
     /// - Request parameters are invalid
     /// - API returns an error response
     /// - Network or parsing errors occur
-    pub async fn get_mark_price_klines<'b>(
+    pub async fn get_mark_price_klines(
         &self,
         req: KlineRequest<'_>,
     ) -> Result<MarkPriceKlineResponse, BybitError> {
@@ -288,7 +288,7 @@ impl MarketData {
     /// - Request parameters are invalid
     /// - API returns an error response
     /// - Network or parsing errors occur
-    pub async fn get_index_price_klines<'b>(
+    pub async fn get_index_price_klines(
         &self,
         req: KlineRequest<'_>,
     ) -> Result<IndexPriceKlineResponse, BybitError> {
@@ -387,7 +387,7 @@ impl MarketData {
     /// - Request parameters are invalid
     /// - API returns an error response
     /// - Network or parsing errors occur
-    pub async fn get_premium_index_price_klines<'b>(
+    pub async fn get_premium_index_price_klines(
         &self,
         req: KlineRequest<'_>,
     ) -> Result<PremiumIndexPriceKlineResponse, BybitError> {
@@ -522,7 +522,7 @@ impl MarketData {
     ///
     /// A `Result<OrderBook, Error>` which is Ok if the order book is successfully retrieved,
     /// or an Err with a detailed error message otherwise.
-    pub async fn get_depth<'b>(
+    pub async fn get_depth(
         &self,
         req: OrderbookRequest<'_>,
     ) -> Result<OrderBookResponse, BybitError> {
@@ -562,7 +562,7 @@ impl MarketData {
     ///
     /// A `Result<RPIOrderbookResponse, BybitError>` which is Ok if the RPI order book is successfully retrieved,
     /// or an Err with a detailed error message otherwise.
-    pub async fn get_rpi_orderbook<'b>(
+    pub async fn get_rpi_orderbook(
         &self,
         req: RPIOrderbookRequest<'_>,
     ) -> Result<RPIOrderbookResponse, BybitError> {
@@ -655,7 +655,7 @@ impl MarketData {
     /// # Errors
     ///
     /// Returns an error if the specified category is invalid or if there is a failure during the API request.
-    pub async fn get_funding_history<'b>(
+    pub async fn get_funding_history(
         &self,
         req: FundingHistoryRequest<'_>,
     ) -> Result<FundingRateResponse, BybitError> {
@@ -710,7 +710,7 @@ impl MarketData {
     ///
     /// Returns `Ok(Vec<Trade>)` containing the recent trades if the operation is successful,
     /// or an `Err` with an error message if it fails.
-    pub async fn get_recent_trades<'b>(
+    pub async fn get_recent_trades(
         &self,
         req: RecentTradesRequest<'_>,
     ) -> Result<RecentTradesResponse, BybitError> {
@@ -753,7 +753,7 @@ impl MarketData {
     /// A `Result<OpenInterestSummary, Error>` representing either:
     /// - An `OpenInterestSummary` on success, encapsulating the open interest data.
     /// - An `Error`, if the retrieval fails.
-    pub async fn get_open_interest<'b>(
+    pub async fn get_open_interest(
         &self,
         req: OpenInterestRequest<'_>,
     ) -> Result<OpenInterestResponse, BybitError> {
@@ -809,7 +809,7 @@ impl MarketData {
     /// A `Result<Vec<HistoricalVolatility>, Error>` which is either:
     /// - A vector of `HistoricalVolatility` instances within the specified time range on success.
     /// - An `Error` if the request fails or if invalid arguments are provided.
-    pub async fn get_historical_volatility<'b>(
+    pub async fn get_historical_volatility(
         &self,
         req: HistoricalVolatilityRequest<'_>,
     ) -> Result<HistoricalVolatilityResponse, BybitError> {
@@ -870,7 +870,7 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result<RiskLimitSummary>` which is either the risk limit details on success or an error on failure.
-    pub async fn get_risk_limit<'b>(
+    pub async fn get_risk_limit(
         &self,
         req: RiskLimitRequest<'_>,
     ) -> Result<RiskLimitResponse, BybitError> {
@@ -952,7 +952,7 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result` type containing either a `NewDeliveryPriceSummary` upon success or an error message.
-    pub async fn get_new_delivery_price<'b>(
+    pub async fn get_new_delivery_price(
         &self,
         req: NewDeliveryPriceRequest<'_>,
     ) -> Result<NewDeliveryPriceResponse, BybitError> {
@@ -997,7 +997,7 @@ impl MarketData {
     /// # Returns
     ///
     /// A `Result` type containing either an `ADLAlertSummary` upon success or an error message.
-    pub async fn get_adl_alert<'b>(
+    pub async fn get_adl_alert(
         &self,
         req: ADLAlertRequest<'_>,
     ) -> Result<ADLAlertResponse, BybitError> {
@@ -1089,7 +1089,7 @@ impl MarketData {
     /// let request = FeeGroupInfoRequest::default();
     /// let response = market.get_fee_group_info(request).await?;
     /// ```
-    pub async fn get_fee_group_info<'b>(
+    pub async fn get_fee_group_info(
         &self,
         req: FeeGroupInfoRequest<'_>,
     ) -> Result<FeeGroupInfoResponse, BybitError> {
@@ -1131,7 +1131,7 @@ impl MarketData {
     /// let request = OrderPriceLimitRequest::linear("BTCUSDT");
     /// let response = market.get_order_price_limit(request).await?;
     /// ```
-    pub async fn get_order_price_limit<'b>(
+    pub async fn get_order_price_limit(
         &self,
         req: OrderPriceLimitRequest<'_>,
     ) -> Result<OrderPriceLimitResponse, BybitError> {

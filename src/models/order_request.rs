@@ -263,7 +263,7 @@ pub struct OrderRequest<'a> {
     /// Specifies how slippage tolerance is calculated for market orders.
     /// - `TickSize`: slippage tolerance is measured in tick size units
     /// - `Percent`: slippage tolerance is measured as a percentage
-    /// Not supported for take profit, stop loss, or conditional orders.
+    ///   Not supported for take profit, stop loss, or conditional orders.
     pub slippage_tolerance_type: Option<Cow<'a, str>>,
 
     /// Slippage tolerance value for market orders.
@@ -278,7 +278,7 @@ pub struct OrderRequest<'a> {
     /// Determines which side of the order book to use for pricing:
     /// - `Queue`: use order price on the same side as the order
     /// - `Counterparty`: use order price on the opposite side
-    /// Valid for `linear` & `inverse` categories only.
+    ///   Valid for `linear` & `inverse` categories only.
     pub bbo_side_type: Option<Cow<'a, str>>,
 
     /// BBO (Best Bid/Offer) level for linear & inverse orders.
@@ -335,6 +335,7 @@ impl<'a> OrderRequest<'a> {
     /// Ensure all parameters comply with Bybit’s API constraints (e.g., valid symbol,
     /// quantity precision) to avoid rejections. This method is ideal for tailored
     /// strategies in perpetual futures trading.
+    #[allow(clippy::too_many_arguments)]
     pub fn custom(
         category: Category,
         symbol: &'a str,

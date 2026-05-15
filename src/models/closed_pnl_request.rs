@@ -53,6 +53,7 @@ impl<'a> ClosedPnlRequest<'a> {
     /// Creates a default ClosedPnl request.
     ///
     /// Returns a request with `category` set to `Linear` and all other fields unset. Suitable for broad queries but should be customized for specific analysis needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> ClosedPnlRequest<'a> {
         ClosedPnlRequest::new(Category::Linear, None, None, None, None)
     }

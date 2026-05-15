@@ -40,6 +40,7 @@ impl<'a> CancelAllRequest<'a> {
     /// Creates a default Cancelall request.
     ///
     /// Returns a request with `category` set to `Linear` and `symbol` set to `"BTCUSDT"`. Suitable for testing or quick cancellations but should be customized for production to match specific trading needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self {
             category: Category::Linear,

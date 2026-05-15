@@ -47,6 +47,7 @@ impl<'a> PositionItem<'a> {
     /// Creates a default PositionItem.
     ///
     /// Returns a position item with `category` set to `Linear`, `symbol` set to `"BTCUSDT"`, `price` and `qty` set to `0.0`, and `side` set to `Buy`. Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> PositionItem<'a> {
         PositionItem::new(Category::Linear, "BTCUSDT", 0.0, Side::Buy, 0.0)
     }

@@ -35,6 +35,7 @@ impl<'a> PositionRequest<'a> {
     /// Creates a default Position request.
     ///
     /// Returns a request with `category` set to `Linear` and all other fields unset. Suitable for broad queries but should be customized for specific position monitoring needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self::new(Category::Linear, None, None, None, None)
     }
@@ -72,6 +73,7 @@ impl<'a> MovePositionRequest<'a> {
     /// Creates a default MovePosition request.
     ///
     /// Returns a request with `from_uid` and `to_uid` set to `0` and an empty position list. Suitable for testing but should be customized with valid UIDs and positions for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> MovePositionRequest<'a> {
         MovePositionRequest::new(0, 0, vec![])
     }

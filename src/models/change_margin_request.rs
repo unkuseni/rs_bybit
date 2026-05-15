@@ -45,6 +45,7 @@ impl<'a> ChangeMarginRequest<'a> {
     /// Creates a default ChangeMargin request.
     ///
     /// Returns a request with `category` set to `Linear`, `symbol` set to `"BTCUSDT"`, `trade_mode` set to `0` (cross margin), and `leverage` set to `10`. Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> ChangeMarginRequest<'a> {
         ChangeMarginRequest::new(Category::Linear, "BTCUSDT", 0, 10)
     }

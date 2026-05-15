@@ -26,6 +26,7 @@ impl<'a> ADLAlertRequest<'a> {
     ///
     /// Returns a request with no symbol filter (returns all symbols).
     /// Suitable for getting a complete overview of ADL alerts across all symbols.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> ADLAlertRequest<'a> {
         ADLAlertRequest::new(None)
     }

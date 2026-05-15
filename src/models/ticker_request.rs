@@ -35,6 +35,7 @@ impl<'a> TickerRequest<'a> {
     ///
     /// Returns a request with `category` set to `Linear` and `symbol` set to `"BTCUSDT"`.
     /// Suitable for testing but should be customized for production to match specific trading needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> TickerRequest<'a> {
         TickerRequest::new(Category::Linear, Some("BTCUSDT"), None, None)
     }

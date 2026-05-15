@@ -50,6 +50,7 @@ pub struct ADLAlertItem {
 
 impl ADLAlertItem {
     /// Constructs a new ADLAlertItem with specified parameters.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         coin: &str,
         symbol: &str,

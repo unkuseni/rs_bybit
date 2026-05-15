@@ -25,6 +25,7 @@ impl<'a> OrderPriceLimitRequest<'a> {
     ///
     /// Returns an `OrderPriceLimitRequest` with `symbol` set to `"BTCUSDT"` and no category specified.
     /// This will default to `linear` category when sent to the API.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> OrderPriceLimitRequest<'a> {
         OrderPriceLimitRequest::new(None, "BTCUSDT")
     }

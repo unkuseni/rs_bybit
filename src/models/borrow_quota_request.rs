@@ -62,6 +62,7 @@ impl<'a> BorrowQuotaRequest<'a> {
     /// Returns a request with BTCUSDT symbol and Buy side as defaults.
     /// Suitable for testing or as a template that can be modified.
     /// Bots should customize the symbol and side for actual trading scenarios.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self {
             category: Category::Spot,

@@ -35,6 +35,7 @@ impl<'a> FundingHistoryRequest<'a> {
     /// Creates a default FundingHistory request.
     ///
     /// Returns a request with `category` set to `Linear` and `symbol` set to `"BTCUSDT"`. Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> FundingHistoryRequest<'a> {
         FundingHistoryRequest::new(Category::Linear, "BTCUSDT", None, None, None)
     }

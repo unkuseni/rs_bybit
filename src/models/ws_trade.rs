@@ -56,6 +56,7 @@ pub struct WsTrade {
 
 impl WsTrade {
     /// Creates a new WsTrade instance.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         timestamp: u64,
         symbol: &str,

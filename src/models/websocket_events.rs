@@ -26,7 +26,7 @@ pub enum WebsocketEvents {
     /// A ticker event.
     ///
     /// Contains real-time ticker data, such as last price and volume. Bots use this for monitoring market conditions and technical analysis.
-    TickerEvent(WsTicker),
+    TickerEvent(Box<WsTicker>),
 
     /// A liquidation event.
     ///

@@ -103,14 +103,14 @@ mod tests {
     async fn test_default_orderbook() {
         let ws: Stream = Bybit::new(None, None);
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let request = vec![(50, "SOLUSDT")];
+        let request = vec![(50, "SOLUSDT"), (50, "XRPUSDT")];
         tokio::spawn(async move {
             ws.ws_orderbook(request, Category::Linear, tx)
                 .await
                 .unwrap();
         });
         while let Some(data) = rx.recv().await {
-            println!("{:#?}", data.data.depth_profile(5));
+            println!("{:#?}", data.data.arbitrage_opportunity());
         }
     }
 

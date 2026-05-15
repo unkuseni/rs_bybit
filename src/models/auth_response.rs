@@ -68,14 +68,14 @@ pub struct TradeAuthData {
     /// - `10004`: invalid signature
     /// - `10001`: parameter error
     /// - `20001`: repeat authentication
-    /// Bots should check this field before proceeding with trade operations.
+    ///   Bots should check this field before proceeding with trade operations.
     #[serde(rename = "retCode")]
     pub ret_code: i32,
 
     /// Return message from authentication.
     ///
     /// "OK" for success, error message for failure.
-    /// Bots should log this for debugging authentication issues.
+    ///   Bots should log this for debugging authentication issues.
     #[serde(rename = "retMsg")]
     pub ret_msg: String,
 

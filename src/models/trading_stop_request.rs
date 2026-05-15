@@ -43,7 +43,7 @@ pub struct TradingStopRequest<'a> {
     /// - `0`: one-way mode
     /// - `1`: hedge-mode Buy side
     /// - `2`: hedge-mode Sell side
-    /// This parameter is required according to the Bybit API documentation.
+    ///   This parameter is required according to the Bybit API documentation.
     pub position_idx: i32,
 
     /// The take-profit price (optional).
@@ -153,6 +153,7 @@ impl<'a> TradingStopRequest<'a> {
     /// * `sl_limit_price` - The limit price for stop-loss (optional)
     /// * `tp_order_type` - The order type for take-profit (optional)
     /// * `sl_order_type` - The order type for stop-loss (optional)
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         category: Category,
         symbol: &'a str,
@@ -196,6 +197,7 @@ impl<'a> TradingStopRequest<'a> {
     /// `tpsl_mode` set to `"Full"`, `position_idx` set to `0` (one-way mode),
     /// and all other fields unset. Suitable for testing but should be customized for
     /// production to match specific trading needs.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> TradingStopRequest<'a> {
         TradingStopRequest::new(
             Category::Linear,

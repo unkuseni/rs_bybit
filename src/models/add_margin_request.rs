@@ -46,6 +46,7 @@ impl<'a> AddMarginRequest<'a> {
     /// Creates a default AddMargin request.
     ///
     /// Returns a request with `category` set to `Linear`, `symbol` set to `"BTCUSDT"`, `auto_add` set to `false`, and no position index. Suitable for testing but should be customized for production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> AddMarginRequest<'a> {
         AddMarginRequest::new(Category::Linear, "BTCUSDT", false, None)
     }

@@ -98,7 +98,7 @@ pub struct BeneficiaryInfo<'a> {
     /// Rules for Korean users:
     /// - Please refer to target exchange kyc name
     /// - When vaspEntityId="others", this field can be null
-    /// Rules for TR, KZ, kyc=IND users: it is a required param, fill with individual name or company name
+    ///   Rules for TR, KZ, kyc=IND users: it is a required param, fill with individual name or company name
     #[serde(rename = "beneficiaryName", skip_serializing_if = "Option::is_none")]
     pub beneficiary_name: Option<&'a str>,
 

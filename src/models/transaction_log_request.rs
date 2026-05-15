@@ -50,6 +50,7 @@ impl<'a> TransactionLogRequest<'a> {
     /// Constructs a new TransactionLog request with specified parameters.
     ///
     /// Allows customization of the transaction log request. Bots should use this to specify the exact filters and time range to align with their analysis needs.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         account_type: Option<&'a str>,
         category: Option<Category>,
@@ -74,6 +75,7 @@ impl<'a> TransactionLogRequest<'a> {
     /// Creates a default TransactionLog request.
     ///
     /// Returns a request with all fields unset. Suitable for broad queries but should be customized for specific analysis needs in production.
+    #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         Self::new(None, None, None, None, None, None, None, None)
     }

@@ -19,5 +19,5 @@ pub enum InstrumentInfo {
     /// Instrument information for options.
     ///
     /// Contains details for options contracts. Not typically used for perpetual futures trading.
-    Options(OptionsInstrument),
+    Options(Box<OptionsInstrument>),
 }

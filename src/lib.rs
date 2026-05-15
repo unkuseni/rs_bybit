@@ -1,7 +1,7 @@
 mod account;
 mod api;
 mod asset;
-mod client;
+pub mod client;
 mod config;
 mod errors;
 mod general;
