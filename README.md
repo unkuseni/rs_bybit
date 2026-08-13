@@ -87,7 +87,7 @@ async fn main() -> Result<(), BybitError> {
 ## Prerequisites
 
 - **Rust** 1.70+ (edition 2021)
-- **OpenSSL** (for native TLS support in WebSocket connections)
+- TLS via the platform's native stack (schannel on Windows, Security.framework on macOS, OpenSSL on Linux — no direct OpenSSL dependency)
 - A Bybit account with API keys for authenticated endpoints
 
 ---
